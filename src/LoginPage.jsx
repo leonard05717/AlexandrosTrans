@@ -13,16 +13,18 @@ export default function LoginPage({ onLogin, error }) {
     setBusy(false)
   }
 
-  return <main className="login-page">
-    <div className="login-visual">
-      <div className="login-brand"><span className="brand-mark">AT</span><div><strong>ALEXTRANSPO</strong><small>Attendance Management</small></div></div>
-      <div className="visual-copy"><span>SMART ATTENDANCE</span><h1>Track. Verify.<br />Work smarter.</h1><p>Secure employee attendance with GPS-based Time In and Time Out monitoring.</p></div>
-      <div className="visual-footer"><span>● GPS LOCATION</span><span>● SECURE ACCESS</span><span>● REAL-TIME RECORDS</span></div>
+  return <main className="login-page gps-login">
+    <div className="login-map">
+      <div className="map-grid"></div>
+      <div className="map-pin">●</div>
+      <div className="map-card"><span>GPS ATTENDANCE</span><strong>Location verified</strong><small>Secure employee check-in</small></div>
+      <div className="login-brand"><span className="brand-mark">AT</span><div><strong>ALEXTRANSPO</strong><small>Employee Attendance System</small></div></div>
+      <div className="map-copy"><span>SMART GPS ATTENDANCE</span><h1>Attendance<br />made simple.</h1><p>Time In and Time Out with verified location records.</p></div>
     </div>
     <div className="login-panel">
       <form className="login-form" onSubmit={submit}>
         <div className="mobile-brand"><span className="brand-mark">AT</span><strong>ALEXTRANSPO</strong></div>
-        <span className="login-label">EMPLOYEE PORTAL</span>
+        <span className="login-label">EMPLOYEE LOGIN</span>
         <h2>Welcome back</h2>
         <p className="login-subtitle">Sign in to access your attendance dashboard.</p>
         <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" placeholder="employee@example.com" /></label>
