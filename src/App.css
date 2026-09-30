@@ -39,3 +39,27 @@
   .mobile-brand { display: flex; }
   .login-form h2 { font-size: 30px; }
 }
+
+/* GPS-style login */
+.gps-login { background: #eef3f8; }
+.login-map { position: relative; overflow: hidden; min-height: 100vh; padding: 46px 7vw; color: #fff; background: #dce7ef; display: flex; flex-direction: column; justify-content: space-between; }
+.map-grid { position: absolute; inset: 0; opacity: .5; background-image: linear-gradient(32deg, transparent 47%, rgba(255,255,255,.8) 48%, transparent 49%), linear-gradient(-18deg, transparent 47%, rgba(255,255,255,.7) 48%, transparent 49%), linear-gradient(90deg, rgba(16,42,67,.07) 1px, transparent 1px), linear-gradient(rgba(16,42,67,.07) 1px, transparent 1px); background-size: 180px 180px, 230px 230px, 45px 45px, 45px 45px; transform: rotate(-3deg) scale(1.2); }
+.login-map:before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(16,42,67,.92), rgba(22,119,255,.62) 62%, rgba(255,255,255,.08)); }
+.login-map > * { position: relative; z-index: 1; }
+.login-map .login-brand { align-self: flex-start; }
+.map-copy { max-width: 520px; margin-bottom: 10vh; }
+.map-copy span { font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.map-copy h1 { margin: 14px 0; font-size: clamp(44px, 5vw, 70px); line-height: .98; letter-spacing: -.05em; }
+.map-copy p { color: rgba(255,255,255,.8); line-height: 1.7; max-width: 430px; }
+.map-pin { position: absolute !important; left: 58%; top: 43%; width: 66px; height: 66px; display: grid; place-items: center; border-radius: 50% 50% 50% 8px; transform: rotate(-45deg); background: #1677ff; box-shadow: 0 12px 30px rgba(22,119,255,.4); font-size: 0; }
+.map-pin:after { content: ""; width: 17px; height: 17px; border-radius: 50%; background: #fff; }
+.map-card { position: absolute !important; right: 7vw; top: 36%; display: grid; gap: 4px; padding: 15px 17px; min-width: 190px; border: 1px solid rgba(255,255,255,.3); border-radius: 13px; background: rgba(255,255,255,.13); backdrop-filter: blur(12px); }
+.map-card span { font-size: 9px; font-weight: 900; letter-spacing: .12em; opacity: .75; }
+.map-card strong { font-size: 13px; }
+.map-card small { font-size: 10px; opacity: .7; }
+@media (max-width: 760px) {
+  .gps-login .login-map { min-height: 230px; padding: 24px 20px; }
+  .gps-login .map-copy { display: none; }
+  .gps-login .map-card { top: 112px; right: 20px; }
+  .gps-login .map-pin { left: 25%; top: 90px; width: 48px; height: 48px; }
+}
