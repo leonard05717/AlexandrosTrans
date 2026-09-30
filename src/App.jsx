@@ -142,12 +142,24 @@ export default function App() {
   if (!employee) return <main className="center-page"><section className="card"><h1>Employee profile required</h1><p>{error || 'Loading your employee profile...'}</p><button onClick={logout}>Sign out</button></section></main>
 
   const open = records.find(r => !r.time_out)
+  const mapRecord = open || records[0]
+  const mapLat = mapRecord?.time_in_lat
+  const mapLng = mapRecord?.time_in_lng
+
   return <main className="app-shell">
     <header className="topbar"><div><span className="eyebrow">ALEXTRANSPO</span><h1>Attendance Dashboard</h1><p>{employee.full_name} · {employee.employee_code}</p></div><button onClick={logout}>Sign out</button></header>
-    <section className="card"><h2>Time Attendance</h2><p>GPS is captured only when you record Time In or Time Out.</p>
-      <div className="actions"><button className="time-in" disabled={!!open} onClick={timeIn}>Time In</button><button className="time-out" disabled={!open} onClick={timeOut}>Time Out</button></div>
-      {error && <p className="error-message">{error}</p>}
+    <section className="dashboard-grid">
+      <section className="card attendance-card"><h2>Time Attendance</h2><p>GPS is captured only when you record Time In or Time Out.</p>
+        <div className="actions"><button className="time-in" disabled={!!open} onClick={timeIn}>Time In</button><button className="time-out" disabled={!open} onClick={timeOut}>Time Out</button></div>
+        {error && <p className="error-message">{error}</p>}
+        {mapLat != null && mapLng != null && <div className="location-box"><strong>Recorded GPS</strong><span>{Number(mapLat).toFixed(6)}, {Number(mapLng).toFixed(6)}</span><small>Map pin shows the latest Time In location.</small></div>}
+      </section>
+      <section className="card">
+        <div className="card-heading"><div><span className="label">GPS MAP</span><h2>Attendance Location</h2></div></div>
+        {mapLat != null && mapLng != null ? <iframe className="map" title="Attendance GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(mapLng) - 0.01}%2C${Number(mapLat) - 0.01}%2C${Number(mapLng) + 0.01}%2C${Number(mapLat) + 0.01}&layer=mapnik&marker=${Number(mapLat)}%2C${Number(mapLng)}`} /> : <div className="map-placeholder"><span>📍</span><p>Time In to record a GPS location and place the pin on the map.</p></div>}
+        {mapLat != null && mapLng != null && <div className="coordinates"><span>Latitude: {Number(mapLat).toFixed(6)}</span><span>Longitude: {Number(mapLng).toFixed(6)}</span></div>}
+      </section>
     </section>
-    <section className="card"><h2>Attendance Records</h2><div className="table-wrap"><table><thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>GPS</th></tr></thead><tbody>{records.map(r => <tr key={r.id}><td>{r.work_date}</td><td>{new Date(r.time_in).toLocaleString()}</td><td>{r.time_out ? new Date(r.time_out).toLocaleString() : 'Open'}</td><td>{r.total_hours}</td><td>{r.time_in_lat.toFixed(6)}, {r.time_in_lng.toFixed(6)}</td></tr>)}</tbody></table></div></section>
+    <section className="card"><h2>Attendance Records</h2><div className="table-wrap"><table><thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>GPS</th></tr></thead><tbody>{records.map(r => <tr key={r.id}><td>{r.work_date}</td><td>{new Date(r.time_in).toLocaleString()}</td><td>{r.time_out ? new Date(r.time_out).toLocaleString() : 'Open'}</td><td>{r.total_hours}</td><td>{r.time_in_lat != null && r.time_in_lng != null ? `${Number(r.time_in_lat).toFixed(6)}, ${Number(r.time_in_lng).toFixed(6)}` : '—'}</td></tr>)}</tbody></table></div></section>
   </main>
 }
