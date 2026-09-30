@@ -59,6 +59,12 @@ export default function App() {
   const [employee, setEmployee] = useState(null)
   const [records, setRecords] = useState([])
   const [error, setError] = useState('')
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   async function login(email, password) {
     setError('')
@@ -91,15 +97,20 @@ export default function App() {
   }, [session])
 
   async function timeIn() {
+    setError('')
     try {
       const p = await gps()
       const row = await request('/rest/v1/attendance', {
         method: 'POST',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
-          employee_id: employee.id, work_date: new Date().toISOString().slice(0, 10),
-          time_in: new Date().toISOString(), time_in_lat: p.lat, time_in_lng: p.lng,
-          time_in_accuracy: p.accuracy, status: 'Present',
+          employee_id: employee.id,
+          work_date: new Date().toISOString().slice(0, 10),
+          time_in: new Date().toISOString(),
+          time_in_lat: p.lat,
+          time_in_lng: p.lng,
+          time_in_accuracy: p.accuracy,
+          status: 'Present',
         }),
       }, session.access_token)
       setRecords([...(row || []), ...records])
@@ -107,18 +118,22 @@ export default function App() {
   }
 
   async function timeOut() {
+    setError('')
     const current = records.find(r => !r.time_out)
     if (!current) return setError('There is no open Time In.')
     try {
       const p = await gps()
-      const now = new Date()
-      const hours = Math.max(0, (now - new Date(current.time_in)) / 3600000)
+      const nowValue = new Date()
+      const hours = Math.max(0, (nowValue - new Date(current.time_in)) / 3600000)
       const row = await request('/rest/v1/attendance?id=eq.' + current.id, {
         method: 'PATCH',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
-          time_out: now.toISOString(), time_out_lat: p.lat, time_out_lng: p.lng,
-          time_out_accuracy: p.accuracy, total_hours: Number(hours.toFixed(2)),
+          time_out: nowValue.toISOString(),
+          time_out_lat: p.lat,
+          time_out_lng: p.lng,
+          time_out_accuracy: p.accuracy,
+          total_hours: Number(hours.toFixed(2)),
         }),
       }, session.access_token)
       setRecords(records.map(r => r.id === current.id ? row[0] : r))
@@ -132,9 +147,14 @@ export default function App() {
         body: JSON.stringify({ user_id: session.user.id, email: session.user.email, action: 'logout' }),
       }, session.access_token)
     } finally {
-      await fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + session.access_token } })
+      await fetch(SUPABASE_URL + '/auth/v1/logout', {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + session.access_token },
+      })
       localStorage.removeItem('alextranspo-session')
-      setSession(null); setEmployee(null); setRecords([])
+      setSession(null)
+      setEmployee(null)
+      setRecords([])
     }
   }
 
@@ -142,24 +162,163 @@ export default function App() {
   if (!employee) return <main className="center-page"><section className="card"><h1>Employee profile required</h1><p>{error || 'Loading your employee profile...'}</p><button onClick={logout}>Sign out</button></section></main>
 
   const open = records.find(r => !r.time_out)
+  const weekStart = new Date(now)
+  const daysSinceSaturday = (weekStart.getDay() + 1) % 7
+  weekStart.setHours(0, 0, 0, 0)
+  weekStart.setDate(weekStart.getDate() - daysSinceSaturday)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+  weekEnd.setHours(23, 59, 59, 999)
+
+  const weekRecords = records.filter(r => {
+    const d = new Date(r.work_date + 'T00:00:00')
+    return d >= weekStart && d <= weekEnd
+  })
+  const workedDays = weekRecords.length
+  const totalHours = weekRecords.reduce((sum, r) => sum + Number(r.total_hours || 0), 0)
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    return d
+  })
+  const recordForDay = d => {
+    const key = d.toISOString().slice(0, 10)
+    return weekRecords.find(r => r.work_date === key)
+  }
   const mapRecord = open || records[0]
   const mapLat = mapRecord?.time_in_lat
   const mapLng = mapRecord?.time_in_lng
+  const formatDate = d => new Intl.DateTimeFormat('en-PH', { year: 'numeric', month: 'short', day: '2-digit' }).format(d)
+  const formatDateTime = value => new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  const formatHours = value => Number(value || 0).toFixed(2)
 
-  return <main className="app-shell">
-    <header className="topbar"><div><span className="eyebrow">ALEXTRANSPO</span><h1>Attendance Dashboard</h1><p>{employee.full_name} · {employee.employee_code}</p></div><button onClick={logout}>Sign out</button></header>
-    <section className="dashboard-grid">
-      <section className="card attendance-card"><h2>Time Attendance</h2><p>GPS is captured only when you record Time In or Time Out.</p>
-        <div className="actions"><button className="time-in" disabled={!!open} onClick={timeIn}>Time In</button><button className="time-out" disabled={!open} onClick={timeOut}>Time Out</button></div>
-        {error && <p className="error-message">{error}</p>}
-        {mapLat != null && mapLng != null && <div className="location-box"><strong>Recorded GPS</strong><span>{Number(mapLat).toFixed(6)}, {Number(mapLng).toFixed(6)}</span><small>Map pin shows the latest Time In location.</small></div>}
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <div>
+          <span className="eyebrow">ALEXTRANSPO</span>
+          <h1>Inspector Time Attendance</h1>
+          <p>GPS attendance and weekly work report</p>
+        </div>
+        <div className="employee">
+          <strong>{employee.full_name}</strong>
+          <span>{employee.employee_code}</span>
+          <span>{employee.department || 'Inspection'}</span>
+          <button onClick={logout}>Sign out</button>
+        </div>
+      </header>
+
+      <section className="dashboard-grid">
+        <article className="card attendance-card">
+          <div className="card-heading">
+            <div>
+              <span className="label">TODAY</span>
+              <h2>{formatDate(now)}</h2>
+            </div>
+            <span className={open ? 'status active' : 'status'}>{open ? '● Working' : '● Not working'}</span>
+          </div>
+
+          <div className="clock">
+            {new Intl.DateTimeFormat('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now)}
+          </div>
+
+          <div className="actions">
+            <button className="time-in" disabled={Boolean(open)} onClick={timeIn}>Time In</button>
+            <button className="time-out" disabled={!open} onClick={timeOut}>Time Out</button>
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+          <div className="location-box">
+            <strong>GPS Tracking</strong>
+            <span>{mapLat != null && mapLng != null ? `${Number(mapLat).toFixed(6)}, ${Number(mapLng).toFixed(6)}` : 'No location recorded yet'}</span>
+            <small>GPS is captured only when Time In or Time Out is pressed.</small>
+          </div>
+        </article>
+
+        <article className="card">
+          <div className="card-heading">
+            <div>
+              <span className="label">GPS MAP</span>
+              <h2>Attendance Locations</h2>
+            </div>
+          </div>
+
+          {mapLat != null && mapLng != null ? (
+            <iframe
+              className="map"
+              title="Attendance GPS map"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(mapLng) - 0.01}%2C${Number(mapLat) - 0.01}%2C${Number(mapLng) + 0.01}%2C${Number(mapLat) + 0.01}&layer=mapnik&marker=${Number(mapLat)}%2C${Number(mapLng)}`}
+            />
+          ) : (
+            <div className="map-placeholder"><span>📍</span><p>Time In to record a GPS location and place the pin on the map.</p></div>
+          )}
+
+          {mapLat != null && mapLng != null && (
+            <div className="coordinates">
+              <span>Latitude: {Number(mapLat).toFixed(6)}</span>
+              <span>Longitude: {Number(mapLng).toFixed(6)}</span>
+            </div>
+          )}
+        </article>
       </section>
-      <section className="card">
-        <div className="card-heading"><div><span className="label">GPS MAP</span><h2>Attendance Location</h2></div></div>
-        {mapLat != null && mapLng != null ? <iframe className="map" title="Attendance GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(mapLng) - 0.01}%2C${Number(mapLat) - 0.01}%2C${Number(mapLng) + 0.01}%2C${Number(mapLat) + 0.01}&layer=mapnik&marker=${Number(mapLat)}%2C${Number(mapLng)}`} /> : <div className="map-placeholder"><span>📍</span><p>Time In to record a GPS location and place the pin on the map.</p></div>}
-        {mapLat != null && mapLng != null && <div className="coordinates"><span>Latitude: {Number(mapLat).toFixed(6)}</span><span>Longitude: {Number(mapLng).toFixed(6)}</span></div>}
+
+      <section className="stats-grid">
+        <article className="stat-card"><span>WORKED DAYS</span><strong>{workedDays}</strong><small>Saturday – Friday</small></article>
+        <article className="stat-card"><span>TOTAL HOURS</span><strong>{formatHours(totalHours)}</strong><small>This work week</small></article>
+        <article className="stat-card"><span>WEEK PERIOD</span><strong>{formatDate(weekStart)}</strong><small>to {formatDate(weekEnd)}</small></article>
       </section>
-    </section>
-    <section className="card"><h2>Attendance Records</h2><div className="table-wrap"><table><thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>GPS</th></tr></thead><tbody>{records.map(r => <tr key={r.id}><td>{r.work_date}</td><td>{new Date(r.time_in).toLocaleString()}</td><td>{r.time_out ? new Date(r.time_out).toLocaleString() : 'Open'}</td><td>{r.total_hours}</td><td>{r.time_in_lat != null && r.time_in_lng != null ? `${Number(r.time_in_lat).toFixed(6)}, ${Number(r.time_in_lng).toFixed(6)}` : '—'}</td></tr>)}</tbody></table></div></section>
-  </main>
+
+      <section className="card weekly-card">
+        <div className="card-heading">
+          <div><span className="label">WEEKLY REPORT</span><h2>Saturday – Friday</h2></div>
+          <span className="week-range">{formatDate(weekStart)} — {formatDate(weekEnd)}</span>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Day</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th></tr></thead>
+            <tbody>
+              {weekDays.map(day => {
+                const record = recordForDay(day)
+                return (
+                  <tr key={day.toISOString()}>
+                    <td>{day.toLocaleDateString('en-PH', { weekday: 'long' })}</td>
+                    <td>{formatDate(day)}</td>
+                    <td>{record ? formatDateTime(record.time_in) : '—'}</td>
+                    <td>{record?.time_out ? formatDateTime(record.time_out) : '—'}</td>
+                    <td>{record ? formatHours(record.total_hours) : '0.00'}</td>
+                    <td><span className={record ? 'pill present' : 'pill absent'}>{record ? record.status : 'No record'}</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="card history-card">
+        <div className="card-heading">
+          <div><span className="label">LOCATION LOG</span><h2>GPS Audit Trail</h2></div>
+        </div>
+        <div className="location-list">
+          {weekRecords.length === 0 ? (
+            <p className="empty">No attendance locations recorded this week.</p>
+          ) : (
+            weekRecords.map(record => (
+              <div className="location-row" key={record.id}>
+                <div>
+                  <strong>{formatDate(new Date(record.work_date + 'T00:00:00'))}</strong>
+                  <span>In: {record.time_in_lat != null && record.time_in_lng != null ? `${Number(record.time_in_lat).toFixed(6)}, ${Number(record.time_in_lng).toFixed(6)}` : '—'}</span>
+                </div>
+                <div><strong>Time In</strong><span>{formatDateTime(record.time_in)}</span></div>
+                <div><strong>Time Out</strong><span>{record.time_out && record.time_out_lat != null && record.time_out_lng != null ? `${Number(record.time_out_lat).toFixed(6)}, ${Number(record.time_out_lng).toFixed(6)}` : 'Not recorded'}</span></div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <footer>GPS is captured only when Time In or Time Out is pressed. Attendance data is stored securely in Supabase.</footer>
+    </main>
+  )
 }
