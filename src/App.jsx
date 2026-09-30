@@ -76,6 +76,36 @@ function AdminMonitor({ session, employee, logout }) {
       {data.attendance.length === 0 && <p className="empty">No attendance records have been recorded yet.</p>}
     </section>
 
+    <section className="card payroll-card">
+      <div className="card-heading">
+        <div><span className="label">PAYROLL</span><h2>Weekly Payroll — Saturday to Friday</h2><p>Regular daily rate: ₱700 · 8 paid hours · 1 hour unpaid break · OT: ₱86/hour</p></div>
+        <button className="print-button no-print" onClick={() => window.print()}>🖨 Print Payroll</button>
+      </div>
+      <div className="payroll-period">Payroll period: {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n); return d })())} — {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n+6); return d })())}</div>
+      <div className="table-wrap">
+        <table className="payroll-table">
+          <thead><tr><th>Inspector</th><th>Days Worked</th><th>Total Hours</th><th>Regular Pay</th><th>OT Hours</th><th>OT Pay</th><th>Total Pay</th></tr></thead>
+          <tbody>
+            {data.inspectors.map(inspector => {
+              const rows = data.attendance.filter(r => r.employee_id === inspector.id).filter(r => {
+                const d=new Date(r.work_date+'T00:00:00'); const w=new Date(); const n=(w.getDay()+1)%7; w.setHours(0,0,0,0); w.setDate(w.getDate()-n); const e=new Date(w); e.setDate(e.getDate()+6); e.setHours(23,59,59,999); return d>=w && d<=e
+              })
+              const totalHours=rows.reduce((s,r)=>s+Number(r.total_hours||0),0)
+              const paid=rows.reduce((s,r)=>s+Math.max(0,Number(r.total_hours||0)-1),0)
+              const ot=rows.reduce((s,r)=>s+Math.max(0,Math.min(100,Math.max(0,Number(r.total_hours||0)-1)-8)),0)
+              const regularPay=rows.length*700
+              const otPay=ot*86
+              return <tr key={inspector.id}>
+                <td><strong>{inspector.full_name}</strong><br/><small>{inspector.employee_code}</small></td>
+                <td>{rows.length}</td><td>{totalHours.toFixed(2)}</td><td>₱{regularPay.toFixed(2)}</td><td>{ot.toFixed(2)}</td><td>₱{otPay.toFixed(2)}</td><td><strong>₱{(regularPay+otPay).toFixed(2)}</strong></td>
+              </tr>
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="payroll-note">Payroll is calculated from recorded Time In / Time Out attendance. GPS coordinates remain available in the attendance history above.</div>
+    </section>
+
     <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
       {(() => {
         const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
