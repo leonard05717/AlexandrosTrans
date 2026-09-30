@@ -27,7 +27,7 @@ function AdminMonitor({ session, employee, logout }) {
     : '—'
   const gpsText = (lat, lng) =>
     lat != null && lng != null
-      ? \`\${Number(lat).toFixed(6)}, \${Number(lng).toFixed(6)}\`
+      ? `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`
       : '—'
 
   return <main className="app-shell">
@@ -81,7 +81,7 @@ function AdminMonitor({ session, employee, logout }) {
         const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
         if (!item) return <div className="map-placeholder"><span>📍</span><p>No inspector GPS location recorded yet.</p></div>
         const lat = Number(item.record.time_in_lat), lng = Number(item.record.time_in_lng)
-        return <><iframe className="map" title="Inspector GPS map" src={\`https://www.openstreetmap.org/export/embed.html?bbox=\${lng - .01}%2C\${lat - .01}%2C\${lng + .01}%2C\${lat + .01}&layer=mapnik&marker=\${lat}%2C\${lng}\`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
+        return <><iframe className="map" title="Inspector GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - .01}%2C${lat - .01}%2C${lng + .01}%2C${lat + .01}&layer=mapnik&marker=${lat}%2C${lng}`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
       })()}
     </section>
   </main>
