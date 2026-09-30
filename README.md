@@ -3,38 +3,49 @@
 Before doing ANY work, follow these steps in order:
 
 1. **Read `MEMORY.md` first.**
-   - Understand the project context, decisions, conventions, and known issues.
-   - Do not assume anything that contradicts what is written there.
-
 2. **Read `README.md`.**
-   - Confirm setup steps, scripts, and project structure.
-
 3. **Review the work log / task history.**
-   - Identify the **latest task** (what was done last, and what state it was left in).
-   - Identify **completed tasks** so you do NOT redo, overwrite, or undo finished work.
-   - Identify **pending / in-progress tasks** and any blockers or TODOs.
+4. **Check recent git history and actual project state.**
+5. **Summarize before starting when a task is ambiguous.**
 
-4. **Check recent git history.**
-   - Run `git log --oneline -10` and `git status`.
-   - Make sure the memory file matches the actual state of the code.
+## Project
 
-5. **Summarize before starting.**
-   - In 3-5 lines, state: (a) what was completed, (b) what was last worked on, (c) what you are about to do.
-   - Wait for confirmation if the task is ambiguous or conflicts with the memory.
+AlexandrosTrans time attendance prototype.
 
-## During Work
+### Current stack
+- React 19
+- Vite 8
+- Browser Geolocation API
+- OpenStreetMap embedded map
+- LocalStorage prototype persistence
+- Supabase/PostgreSQL schema prepared in `supabase/schema.sql`
 
-- Follow the conventions in `MEMORY.md` (stack: Vite + `src/` + `public/`, lint with oxlint via `.oxlintrc.json`).
-- Do not modify completed work unless the task explicitly requires it.
-- Keep changes small and focused on the current task.
-- Run lint/build before calling a task done.
+### Features
+- Time In and Time Out buttons
+- GPS capture at each attendance action
+- GPS map showing the latest attendance location
+- Saturday-to-Friday weekly period
+- Days worked and total hours report
+- GPS audit trail
+- Responsive desktop/mobile layout
 
-## End of Session Rules (MANDATORY)
+### Run locally
 
-1. Update the **work log** in `MEMORY.md` with:
-   - Date and task name
-   - What was changed (files touched)
-   - Status: `Completed` / `In Progress` / `Blocked`
-   - Next steps or open issues
-2. Move finished items into the **Completed Tasks** section.
-3. Commit with a clear message (e.g., `Add memory and work log update: <task>`).
+```bash
+npm install
+npm run dev
+```
+
+### Production next steps
+
+1. Add Supabase Auth.
+2. Replace LocalStorage with Supabase attendance inserts/updates.
+3. Apply Row Level Security policies based on authenticated employee IDs.
+4. Store employee profiles in `employees`.
+5. Add an HR/Admin dashboard for all employees.
+6. Add server-side weekly report queries.
+7. Consider a production map provider if advanced markers/geocoding are required.
+
+### Privacy
+
+The prototype records GPS only when the employee presses Time In or Time Out. It does not continuously track location.
