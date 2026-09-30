@@ -1,3 +1,60 @@
+function AdminMonitor({ session, employee, logout }) {
+  const [data, setData] = useState({ inspectors: [], attendance: [] })
+  const [error, setError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function refresh() {
+    setRefreshing(true)
+    try {
+      const inspectors = await request('/rest/v1/employees?role=eq.inspector&active=eq.true&select=id,employee_code,full_name,department', {}, session.access_token)
+      const attendance = await request('/rest/v1/attendance?select=*&order=work_date.desc,time_in.desc', {}, session.access_token)
+      setData({ inspectors: inspectors || [], attendance: attendance || [] })
+      setError('')
+    } catch (e) { setError(e.message) }
+    finally { setRefreshing(false) }
+  }
+
+  useEffect(() => { refresh() }, [])
+
+  const latest = data.inspectors.map(inspector => {
+    const rows = data.attendance.filter(r => r.employee_id === inspector.id)
+    return { inspector, record: rows.find(r => !r.time_out) || rows[0] }
+  })
+
+  return <main className="app-shell">
+    <header className="topbar">
+      <div><span className="eyebrow">ALEXTRANSPO</span><h1>Inspector Monitoring</h1><p>Monitor inspector Time In / Time Out and GPS locations</p></div>
+      <div className="employee"><strong>{employee.full_name}</strong><span>Administrator</span><button onClick={logout}>Sign out</button></div>
+    </header>
+    <section className="stats-grid">
+      <article className="stat-card"><span>INSPECTORS</span><strong>{data.inspectors.length}</strong><small>Active inspectors</small></article>
+      <article className="stat-card"><span>WORKING NOW</span><strong>{latest.filter(x => x.record && !x.record.time_out).length}</strong><small>Open Time In records</small></article>
+      <article className="stat-card"><span>GPS RECORDS</span><strong>{data.attendance.length}</strong><small>Attendance records</small></article>
+    </section>
+    <section className="card">
+      <div className="card-heading"><div><span className="label">INSPECTOR MONITOR</span><h2>Inspector Time Attendance</h2></div><button onClick={refresh} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh'}</button></div>
+      {error && <p className="error-message">{error}</p>}
+      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Time In GPS</th><th>Time Out GPS</th></tr></thead>
+      <tbody>{latest.map(({ inspector, record }) => <tr key={inspector.id}>
+        <td><strong>{inspector.full_name}</strong><br /><small>{inspector.employee_code}</small></td>
+        <td><span className={record && !record.time_out ? 'pill present' : 'pill absent'}>{record && !record.time_out ? 'Working' : 'Not working'}</span></td>
+        <td>{record ? new Date(record.time_in).toLocaleString() : '—'}</td>
+        <td>{record?.time_out ? new Date(record.time_out).toLocaleString() : '—'}</td>
+        <td>{record?.time_in_lat != null && record?.time_in_lng != null ? `${Number(record.time_in_lat).toFixed(6)}, ${Number(record.time_in_lng).toFixed(6)}` : '—'}</td>
+        <td>{record?.time_out_lat != null && record?.time_out_lng != null ? `${Number(record.time_out_lat).toFixed(6)}, ${Number(record.time_out_lng).toFixed(6)}` : '—'}</td>
+      </tr>)}</tbody></table></div>
+    </section>
+    <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
+      {(() => {
+        const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
+        if (!item) return <div className="map-placeholder"><span>📍</span><p>No inspector GPS location recorded yet.</p></div>
+        const lat = Number(item.record.time_in_lat), lng = Number(item.record.time_in_lng)
+        return <><iframe className="map" title="Inspector GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - .01}%2C${lat - .01}%2C${lng + .01}%2C${lat + .01}&layer=mapnik&marker=${lat}%2C${lng}`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
+      })()}
+    </section>
+  </main>
+}
+
 import { useEffect, useState } from 'react'
 import './App.css'
 import LoginPage from './LoginPage'
@@ -160,6 +217,7 @@ export default function App() {
 
   if (!session) return <LoginPage onLogin={login} error={error} />
   if (!employee) return <main className="center-page"><section className="card"><h1>Employee profile required</h1><p>{error || 'Loading your employee profile...'}</p><button onClick={logout}>Sign out</button></section></main>
+  if (employee.role === 'admin') return <AdminMonitor session={session} employee={employee} logout={logout} />
 
   const open = records.find(r => !r.time_out)
   const weekStart = new Date(now)
