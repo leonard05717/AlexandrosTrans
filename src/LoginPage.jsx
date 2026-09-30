@@ -1,72 +1,26 @@
-const API_URL = import.meta.env.VITE_SUPABASE_URL
-const API_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+import { useState } from 'react'
 
-export function configured() {
-  return Boolean(API_URL && API_KEY)
-}
+export default function LoginPage({ onLogin, error }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
 
-async function request(path, options = {}, token = '') {
-  const response = await fetch(API_URL + path, {
-    ...options,
-    headers: {
-      apikey: API_KEY,
-      Authorization: 'Bearer ' + (token || API_KEY),
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  })
-  const text = await response.text()
-  let body
-  try { body = text ? JSON.parse(text) : null } catch { body = text }
-  if (!response.ok) throw new Error(body?.message || body?.msg || body?.error_description || 'Request failed')
-  return body
-}
+  async function submit(e) {
+    e.preventDefault()
+    setBusy(true)
+    await onLogin(email, password)
+    setBusy(false)
+  }
 
-export async function login(email, password) {
-  return request('/auth/v1/token?grant_type=password', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  })
-}
-
-export async function getEmployee(userId, token) {
-  const rows = await request('/rest/v1/employees?user_id=eq.' + encodeURIComponent(userId) + '&active=eq.true&select=*', {}, token)
-  if (!rows?.[0]) throw new Error('No active employee profile is linked to this account.')
-  return rows[0]
-}
-
-export async function getAttendance(employeeId, token) {
-  return request('/rest/v1/attendance?employee_id=eq.' + encodeURIComponent(employeeId) + '&select=*&order=work_date.desc,time_in.desc', {}, token)
-}
-
-export async function insertAttendance(record, token) {
-  return request('/rest/v1/attendance', {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(record),
-  }, token)
-}
-
-export async function updateAttendance(id, record, token) {
-  const rows = await request('/rest/v1/attendance?id=eq.' + encodeURIComponent(id), {
-    method: 'PATCH',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(record),
-  }, token)
-  return rows?.[0]
-}
-
-export async function recordAuthActivity(activity, token) {
-  return request('/rest/v1/auth_activity', {
-    method: 'POST',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(activity),
-  }, token)
-}
-
-export async function logout(token) {
-  await fetch(API_URL + '/auth/v1/logout', {
-    method: 'POST',
-    headers: { apikey: API_KEY, Authorization: 'Bearer ' + token },
-  })
+  return <main className="center-page">
+    <form className="login-card card" onSubmit={submit}>
+      <span className="eyebrow">ALEXTRANSPO</span>
+      <h1>Employee Login</h1>
+      <p>Sign in before recording Time In or Time Out.</p>
+      <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></label>
+      <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" /></label>
+      {error && <p className="error-message">{error}</p>}
+      <button className="time-in" disabled={busy}>{busy ? 'Signing in...' : 'Sign in'}</button>
+    </form>
+  </main>
 }
