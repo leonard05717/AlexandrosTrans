@@ -260,8 +260,9 @@ export default function App() {
   const BREAK_HOURS = 1
   const calculatePay = record => {
     const worked = Number(record?.total_hours || 0)
-    const regularHours = Math.min(worked, REGULAR_HOURS)
-    const overtimeHours = Math.max(0, worked - REGULAR_HOURS)
+    const paidHours = Math.max(0, worked - BREAK_HOURS)
+    const regularHours = Math.min(paidHours, REGULAR_HOURS)
+    const overtimeHours = Math.max(0, paidHours - REGULAR_HOURS)
     return {
       regularHours,
       overtimeHours,
