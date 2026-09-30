@@ -44,12 +44,7 @@ function AdminMonitor({ session, employee, logout }) {
         <td>{record?.time_out_lat != null && record?.time_out_lng != null ? `${Number(record.time_out_lat).toFixed(6)}, ${Number(record.time_out_lng).toFixed(6)}` : '—'}</td>
       </tr>)}</tbody></table></div>
     </section>
-    <section className="card pay-card">
-        <div className="card-heading"><div><span className="label">PAY RULES</span><h2>Inspector Salary Calculation</h2></div></div>
-        <div className="pay-rules"><span>Regular: <strong>₱700</strong> for 8 hours</span><span>Break: <strong>1 hour</strong> unpaid</span><span>Overtime: <strong>₱86/hour</strong></span></div>
-      </section>
-
-      <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
+    <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
       {(() => {
         const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
         if (!item) return <div className="map-placeholder"><span>📍</span><p>No inspector GPS location recorded yet.</p></div>
@@ -254,24 +249,6 @@ export default function App() {
   const formatDate = d => new Intl.DateTimeFormat('en-PH', { year: 'numeric', month: 'short', day: '2-digit' }).format(d)
   const formatDateTime = value => new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
   const formatHours = value => Number(value || 0).toFixed(2)
-  const REGULAR_HOURS = 8
-  const DAILY_RATE = 700
-  const OT_RATE = 86
-  const BREAK_HOURS = 1
-  const calculatePay = record => {
-    const worked = Number(record?.total_hours || 0)
-    const paidHours = Math.max(0, worked - BREAK_HOURS)
-    const regularHours = Math.min(paidHours, REGULAR_HOURS)
-    const overtimeHours = Math.max(0, paidHours - REGULAR_HOURS)
-    return {
-      regularHours,
-      overtimeHours,
-      regularPay: DAILY_RATE,
-      overtimePay: overtimeHours * OT_RATE,
-      totalPay: DAILY_RATE + overtimeHours * OT_RATE,
-    }
-  }
-  const weekPay = weekRecords.reduce((sum, r) => sum + calculatePay(r).totalPay, 0)
 
   return (
     <main className="app-shell">
@@ -346,7 +323,6 @@ export default function App() {
       <section className="stats-grid">
         <article className="stat-card"><span>WORKED DAYS</span><strong>{workedDays}</strong><small>Saturday – Friday</small></article>
         <article className="stat-card"><span>TOTAL HOURS</span><strong>{formatHours(totalHours)}</strong><small>This work week</small></article>
-        <article className="stat-card"><span>ESTIMATED PAY</span><strong>₱{weekPay.toFixed(2)}</strong><small>₱700/day + ₱86/hour OT</small></article>
         <article className="stat-card"><span>WEEK PERIOD</span><strong>{formatDate(weekStart)}</strong><small>to {formatDate(weekEnd)}</small></article>
       </section>
 
@@ -358,7 +334,7 @@ export default function App() {
 
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Day</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Regular Pay</th><th>OT</th><th>Total Pay</th><th>Status</th></tr></thead>
+            <thead><tr><th>Day</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th></tr></thead>
             <tbody>
               {weekDays.map(day => {
                 const record = recordForDay(day)
@@ -369,9 +345,6 @@ export default function App() {
                     <td>{record ? formatDateTime(record.time_in) : '—'}</td>
                     <td>{record?.time_out ? formatDateTime(record.time_out) : '—'}</td>
                     <td>{record ? formatHours(record.total_hours) : '0.00'}</td>
-                    <td>{record ? `₱${calculatePay(record).regularPay.toFixed(2)}` : '₱0.00'}</td>
-                    <td>{record ? `${calculatePay(record).overtimeHours.toFixed(2)}h / ₱${calculatePay(record).overtimePay.toFixed(2)}` : '0.00h / ₱0.00'}</td>
-                    <td><strong>{record ? `₱${calculatePay(record).totalPay.toFixed(2)}` : '₱0.00'}</strong></td>
                     <td><span className={record ? 'pill present' : 'pill absent'}>{record ? record.status : 'No record'}</span></td>
                   </tr>
                 )
