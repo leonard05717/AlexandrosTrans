@@ -6,6 +6,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 async function request(path, options = {}, token = SUPABASE_KEY) {
+  if (!SUPABASE_URL) throw new Error('Supabase URL is missing. Check VITE_SUPABASE_URL in your deployment environment.')
+  if (!SUPABASE_KEY) throw new Error('Supabase API key is missing. Check VITE_SUPABASE_ANON_KEY in your deployment environment.')
+
   const response = await fetch(SUPABASE_URL + path, {
     ...options,
     headers: {
@@ -15,9 +18,26 @@ async function request(path, options = {}, token = SUPABASE_KEY) {
       ...(options.headers || {}),
     },
   })
-  const text = await response.text()
-  const data = text ? JSON.parse(text) : null
-  if (!response.ok) throw new Error(data?.message || data?.msg || 'Supabase request failed')
+
+  const responseText = await response.text()
+  let data = null
+  try {
+    data = responseText ? JSON.parse(responseText) : null
+  } catch {
+    data = null
+  }
+
+  if (!response.ok) {
+    const detail =
+      data?.msg ||
+      data?.message ||
+      data?.error_description ||
+      data?.error ||
+      responseText ||
+      'Unknown Supabase error'
+    throw new Error(`Supabase request failed (${response.status}): ${detail}`)
+  }
+
   return data
 }
 
