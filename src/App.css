@@ -290,3 +290,23 @@ footer {
   .login-hero { min-height:330px; }.login-hero-content p { font-size:13px; }.login-features { display:none; }
   .login-panel { padding:34px 20px; }.login-form h2 { font-size:34px; }
 }
+
+
+.payroll-card .card-heading p { margin:6px 0 0; color:var(--muted); font-size:12px; }
+.payroll-period { margin:0 0 16px; padding:10px 12px; background:#f7f9fc; border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--muted); }
+.print-button { border:0; border-radius:8px; padding:10px 15px; background:var(--blue); color:#fff; font-weight:800; cursor:pointer; }
+.payroll-note { margin-top:14px; color:var(--muted); font-size:11px; }
+@media print {
+  @page { size:A4 landscape; margin:12mm; }
+  body { background:#fff!important; }
+  .no-print, button, .topbar button { display:none!important; }
+  .app-shell { max-width:none!important; padding:0!important; }
+  .topbar { margin-bottom:12px!important; }
+  .card, .stat-card { box-shadow:none!important; break-inside:avoid; }
+  .dashboard-grid, .stats-grid, .history-card, .topbar > .employee { display:none!important; }
+  .payroll-card { display:block!important; border:1px solid #ccc!important; }
+  .payroll-table { font-size:10px!important; width:100%; }
+  .payroll-table th, .payroll-table td { padding:7px!important; }
+  .payroll-period { background:#fff!important; }
+  .payroll-note { color:#555!important; }
+}
