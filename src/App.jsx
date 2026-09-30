@@ -21,35 +21,67 @@ function AdminMonitor({ session, employee, logout }) {
     return { inspector, record: rows.find(r => !r.time_out) || rows[0] }
   })
 
+  const inspectorById = new Map(data.inspectors.map(i => [i.id, i]))
+  const formatDateTime = value => value
+    ? new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+    : '—'
+  const gpsText = (lat, lng) =>
+    lat != null && lng != null
+      ? \`\${Number(lat).toFixed(6)}, \${Number(lng).toFixed(6)}\`
+      : '—'
+
   return <main className="app-shell">
     <header className="topbar">
-      <div><span className="eyebrow">ALEXTRANSPO</span><h1>Inspector Monitoring</h1><p>Monitor inspector Time In / Time Out and GPS locations</p></div>
+      <div><span className="eyebrow">ALEXTRANSPO</span><h1>Inspector Monitoring</h1><p>Monitor all inspector accounts, Time In / Time Out and GPS locations</p></div>
       <div className="employee"><strong>{employee.full_name}</strong><span>Administrator</span><button onClick={logout}>Sign out</button></div>
     </header>
+
     <section className="stats-grid">
-      <article className="stat-card"><span>INSPECTORS</span><strong>{data.inspectors.length}</strong><small>Active inspectors</small></article>
+      <article className="stat-card"><span>INSPECTOR ACCOUNTS</span><strong>{data.inspectors.length}</strong><small>Active inspector accounts</small></article>
       <article className="stat-card"><span>WORKING NOW</span><strong>{latest.filter(x => x.record && !x.record.time_out).length}</strong><small>Open Time In records</small></article>
-      <article className="stat-card"><span>GPS RECORDS</span><strong>{data.attendance.length}</strong><small>Attendance records</small></article>
+      <article className="stat-card"><span>ATTENDANCE RECORDS</span><strong>{data.attendance.length}</strong><small>All recorded Time In / Out entries</small></article>
     </section>
+
     <section className="card">
-      <div className="card-heading"><div><span className="label">INSPECTOR MONITOR</span><h2>Inspector Time Attendance</h2></div><button onClick={refresh} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh'}</button></div>
+      <div className="card-heading"><div><span className="label">INSPECTOR MONITOR</span><h2>All Inspector Accounts</h2></div><button onClick={refresh} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh'}</button></div>
       {error && <p className="error-message">{error}</p>}
-      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Time In GPS</th><th>Time Out GPS</th></tr></thead>
+      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Status</th><th>Latest Time In</th><th>Latest Time Out</th><th>Time In GPS</th><th>Time Out GPS</th></tr></thead>
       <tbody>{latest.map(({ inspector, record }) => <tr key={inspector.id}>
         <td><strong>{inspector.full_name}</strong><br /><small>{inspector.employee_code}</small></td>
         <td><span className={record && !record.time_out ? 'pill present' : 'pill absent'}>{record && !record.time_out ? 'Working' : 'Not working'}</span></td>
-        <td>{record ? new Date(record.time_in).toLocaleString() : '—'}</td>
-        <td>{record?.time_out ? new Date(record.time_out).toLocaleString() : '—'}</td>
-        <td>{record?.time_in_lat != null && record?.time_in_lng != null ? `${Number(record.time_in_lat).toFixed(6)}, ${Number(record.time_in_lng).toFixed(6)}` : '—'}</td>
-        <td>{record?.time_out_lat != null && record?.time_out_lng != null ? `${Number(record.time_out_lat).toFixed(6)}, ${Number(record.time_out_lng).toFixed(6)}` : '—'}</td>
+        <td>{formatDateTime(record?.time_in)}</td>
+        <td>{formatDateTime(record?.time_out)}</td>
+        <td>{gpsText(record?.time_in_lat, record?.time_in_lng)}</td>
+        <td>{gpsText(record?.time_out_lat, record?.time_out_lng)}</td>
       </tr>)}</tbody></table></div>
     </section>
+
+    <section className="card history-card">
+      <div className="card-heading"><div><span className="label">ATTENDANCE HISTORY</span><h2>All Time In / Time Out GPS Records</h2></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Work Date</th><th>Time In</th><th>Time In GPS</th><th>Time Out</th><th>Time Out GPS</th><th>Hours</th></tr></thead>
+      <tbody>
+        {data.attendance.map(record => {
+          const inspector = inspectorById.get(record.employee_id)
+          return <tr key={record.id}>
+            <td><strong>{inspector?.full_name || 'Unknown inspector'}</strong><br /><small>{inspector?.employee_code || record.employee_id}</small></td>
+            <td>{record.work_date || '—'}</td>
+            <td>{formatDateTime(record.time_in)}</td>
+            <td>{gpsText(record.time_in_lat, record.time_in_lng)}</td>
+            <td>{formatDateTime(record.time_out)}</td>
+            <td>{gpsText(record.time_out_lat, record.time_out_lng)}</td>
+            <td>{Number(record.total_hours || 0).toFixed(2)}</td>
+          </tr>
+        })}
+      </tbody></table></div>
+      {data.attendance.length === 0 && <p className="empty">No attendance records have been recorded yet.</p>}
+    </section>
+
     <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
       {(() => {
         const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
         if (!item) return <div className="map-placeholder"><span>📍</span><p>No inspector GPS location recorded yet.</p></div>
         const lat = Number(item.record.time_in_lat), lng = Number(item.record.time_in_lng)
-        return <><iframe className="map" title="Inspector GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - .01}%2C${lat - .01}%2C${lng + .01}%2C${lat + .01}&layer=mapnik&marker=${lat}%2C${lng}`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
+        return <><iframe className="map" title="Inspector GPS map" src={\`https://www.openstreetmap.org/export/embed.html?bbox=\${lng - .01}%2C\${lat - .01}%2C\${lng + .01}%2C\${lat + .01}&layer=mapnik&marker=\${lat}%2C\${lng}\`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
       })()}
     </section>
   </main>
