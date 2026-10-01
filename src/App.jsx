@@ -78,7 +78,7 @@ function AdminMonitor({ session, employee, logout }) {
 
     <section className="card payroll-card">
       <div className="card-heading">
-        <div><span className="label">PAYROLL</span><h2>Weekly Payroll — Saturday to Friday</h2><p>Regular daily rate: ₱700 · 8 paid hours · 1 hour unpaid break · OT: ₱86/hour</p></div>
+        <div><span className="label">PAYROLL</span><h2>Weekly Payroll — Saturday to Friday</h2><p>Regular rate: ₱77.777/hour for the first 9 hours · OT: ₱86/hour after 9 hours</p></div>
         <button className="print-button no-print" onClick={() => window.print()}>🖨 Print Payroll</button>
       </div>
       <div className="payroll-period">Payroll period: {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n); return d })())} — {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n+6); return d })())}</div>
@@ -91,9 +91,9 @@ function AdminMonitor({ session, employee, logout }) {
                 const d=new Date(r.work_date+'T00:00:00'); const w=new Date(); const n=(w.getDay()+1)%7; w.setHours(0,0,0,0); w.setDate(w.getDate()-n); const e=new Date(w); e.setDate(e.getDate()+6); e.setHours(23,59,59,999); return d>=w && d<=e
               })
               const totalHours=rows.reduce((s,r)=>s+Number(r.total_hours||0),0)
-              const paid=rows.reduce((s,r)=>s+Math.max(0,Number(r.total_hours||0)-1),0)
-              const ot=rows.reduce((s,r)=>s+Math.max(0,Math.min(100,Math.max(0,Number(r.total_hours||0)-1)-8)),0)
-              const regularPay=rows.length*700
+              const regularHours=rows.reduce((s,r)=>s+Math.min(Number(r.total_hours||0),9),0)
+              const ot=rows.reduce((s,r)=>s+Math.max(0,Number(r.total_hours||0)-9),0)
+              const regularPay=regularHours*77.777
               const otPay=ot*86
               return <tr key={inspector.id}>
                 <td><strong>{inspector.full_name}</strong><br/><small>{inspector.employee_code}</small></td>
