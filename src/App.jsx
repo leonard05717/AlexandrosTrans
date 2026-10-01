@@ -1,6 +1,9 @@
+const StableMapFrame = memo(function StableMapFrame({ src, title }) { return <iframe title={title} src={src} /> })
+
 function StableGpsMap({ latitude, longitude, title, className = '' }) {
   const initial = useRef({ latitude: Number(latitude), longitude: Number(longitude) })
   const [position, setPosition] = useState({ latitude: Number(latitude), longitude: Number(longitude) })
+  const frameSrcRef = useRef(null)
 
   useEffect(() => {
     if (latitude == null || longitude == null) return
@@ -18,12 +21,11 @@ function StableGpsMap({ latitude, longitude, title, className = '' }) {
   const left = ((clamp(position.longitude, minLng, maxLng) - minLng) / (maxLng - minLng)) * 100
   const top = (1 - ((clamp(position.latitude, minLat, maxLat) - minLat) / (maxLat - minLat))) * 100
 
-  const src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
-    minLng + '%2C' + minLat + '%2C' + maxLng + '%2C' + maxLat + '&layer=mapnik'
+  if (!frameSrcRef.current) frameSrcRef.current = 'https://www.openstreetmap.org/export/embed.html?bbox=' + minLng + '%2C' + minLat + '%2C' + maxLng + '%2C' + maxLat + '&layer=mapnik'
 
   return (
     <div className={'stable-map ' + className}>
-      <iframe title={title} src={src} />
+      <StableMapFrame src={frameSrcRef.current} title={title} />
       <span className="stable-map-marker" style={{ left: left + '%', top: top + '%' }} aria-label="Current GPS location">●</span>
     </div>
   )
@@ -254,7 +256,7 @@ function AdminMonitor({ session, employee, logout }) {
   </main>
 }
 
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import './App.css'
 import LoginPage from './LoginPage'
