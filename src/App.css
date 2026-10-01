@@ -330,3 +330,20 @@ footer {
 @media (max-width:600px) {
   .live-map { height:220px; }
 }
+
+
+/* Admin portal navigation and management */
+.admin-nav { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; padding:10px; background:#fff; border:1px solid var(--border); border-radius:12px; }
+.admin-nav button { border:0; background:transparent; color:var(--muted); font-weight:800; padding:10px 14px; border-radius:8px; cursor:pointer; }
+.admin-nav button span { margin-right:6px; }
+.admin-nav button.active { background:var(--navy); color:#fff; }
+.admin-two-column { display:grid; grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr); gap:18px; }
+.report-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.report-filters button { border:1px solid var(--border); background:#fff; color:var(--muted); padding:8px 12px; border-radius:8px; font-weight:800; cursor:pointer; }
+.report-filters button.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+.report-item select { min-width:120px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+@media (max-width:900px) { .admin-two-column { grid-template-columns:1fr; } }
+@media (max-width:600px) {
+  .admin-nav { overflow-x:auto; flex-wrap:nowrap; }
+  .admin-nav button { white-space:nowrap; }
+}
