@@ -346,8 +346,9 @@ export default function App() {
   const [records, setRecords] = useState([])
   const [error, setError] = useState('')
   const [now, setNow] = useState(new Date())
-  const watchIdRef = useRef(null)
+  const gpsIntervalRef = useRef(null)
   const trackingAttendanceRef = useRef(null)
+  const GPS_REFRESH_INTERVAL = 5 * 60 * 1000
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000)
@@ -407,9 +408,9 @@ export default function App() {
   }
 
   function stopLiveTracking() {
-    if (watchIdRef.current != null && navigator.geolocation) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
+    if (gpsIntervalRef.current != null) {
+      clearInterval(gpsIntervalRef.current)
+      gpsIntervalRef.current = null
     }
     trackingAttendanceRef.current = null
   }
@@ -419,15 +420,22 @@ export default function App() {
       setError('Geolocation is not supported by this browser.')
       return
     }
-    if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current)
+
+    stopLiveTracking()
     trackingAttendanceRef.current = attendanceId
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      position => {
-        updateLiveLocation(attendanceId, position).catch(e => setError(e.message))
-      },
-      e => setError('Live GPS tracking error: ' + e.message),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
-    )
+
+    const captureLiveGps = () => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          updateLiveLocation(attendanceId, position).catch(e => setError(e.message))
+        },
+        e => setError('Live GPS tracking error: ' + e.message),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+      )
+    }
+
+    captureLiveGps()
+    gpsIntervalRef.current = setInterval(captureLiveGps, GPS_REFRESH_INTERVAL)
   }
 
   useEffect(() => {
