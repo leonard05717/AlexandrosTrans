@@ -136,6 +136,10 @@ function AdminMonitor({ session, employee, logout }) {
   async function addInspector(e) {
     e.preventDefault(); setAccountStatus('')
     try {
+      await supabaseRealtime.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      })
       const { data: refreshed, error: refreshError } = await supabaseRealtime.auth.refreshSession()
       const accessToken = refreshed?.session?.access_token || session.access_token
       if (refreshError && !accessToken) throw new Error('Your admin session has expired. Please sign in again.')
