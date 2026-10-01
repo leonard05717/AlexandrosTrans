@@ -2,23 +2,32 @@ function AdminMonitor({ session, employee, logout }) {
   const [data, setData] = useState({ inspectors: [], attendance: [] })
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [liveLocations, setLiveLocations] = useState([])
 
   async function refresh() {
     setRefreshing(true)
     try {
       const inspectors = await request('/rest/v1/employees?role=eq.inspector&active=eq.true&select=id,employee_code,full_name,department', {}, session.access_token)
       const attendance = await request('/rest/v1/attendance?select=*&order=work_date.desc,time_in.desc', {}, session.access_token)
+      const live = await request('/rest/v1/live_locations?is_active=eq.true&select=*&order=recorded_at.desc', {}, session.access_token)
       setData({ inspectors: inspectors || [], attendance: attendance || [] })
+      setLiveLocations(live || [])
       setError('')
     } catch (e) { setError(e.message) }
     finally { setRefreshing(false) }
   }
 
-  useEffect(() => { refresh() }, [])
+  useEffect(() => {
+    refresh()
+    const timer = setInterval(refresh, 5000)
+    return () => clearInterval(timer)
+  }, [])
 
   const latest = data.inspectors.map(inspector => {
     const rows = data.attendance.filter(r => r.employee_id === inspector.id)
-    return { inspector, record: rows.find(r => !r.time_out) || rows[0] }
+    const record = rows.find(r => !r.time_out) || rows[0]
+    const live = liveLocations.find(x => x.attendance_id === record?.id)
+    return { inspector, record, live }
   })
 
   const inspectorById = new Map(data.inspectors.map(i => [i.id, i]))
@@ -54,6 +63,18 @@ function AdminMonitor({ session, employee, logout }) {
         <td>{gpsText(record?.time_in_lat, record?.time_in_lng)}</td>
         <td>{gpsText(record?.time_out_lat, record?.time_out_lng)}</td>
       </tr>)}</tbody></table></div>
+    </section>
+
+    <section className="card history-card">
+      <div className="card-heading"><div><span className="label">LIVE GPS MONITORING</span><h2>Inspector Locations — Live</h2><p>Updates automatically while inspectors are clocked in.</p></div></div>
+      <div className="live-grid">
+        {latest.filter(x => x.live).map(({ inspector, record, live }) => <article className="live-card" key={inspector.id}>
+          <div className="live-card-head"><strong>{inspector.full_name}</strong><span className="live-badge">● LIVE</span></div>
+          <div className="live-map"><iframe title={'Live GPS '+inspector.full_name} src={'https://www.openstreetmap.org/export/embed.html?bbox='+(Number(live.longitude)-.01)+'%2C'+(Number(live.latitude)-.01)+'%2C'+(Number(live.longitude)+.01)+'%2C'+(Number(live.latitude)+.01)+'&layer=mapnik&marker='+Number(live.latitude)+'%2C'+Number(live.longitude)} /></div>
+          <div className="live-details"><span>Time In: {formatDateTime(record?.time_in)}</span><span>GPS: {gpsText(live.latitude, live.longitude)}</span><span>Accuracy: {live.accuracy != null ? Number(live.accuracy).toFixed(1)+' m' : '—'}</span><span>Updated: {formatDateTime(live.recorded_at)}</span></div>
+        </article>)}
+        {latest.filter(x => x.live).length === 0 && <p className="empty">No inspector is currently reporting a live GPS location.</p>}
+      </div>
     </section>
 
     <section className="card history-card">
@@ -117,7 +138,7 @@ function AdminMonitor({ session, employee, logout }) {
   </main>
 }
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import LoginPage from './LoginPage'
 
@@ -214,6 +235,8 @@ export default function App() {
   const [records, setRecords] = useState([])
   const [error, setError] = useState('')
   const [now, setNow] = useState(new Date())
+  const watchIdRef = useRef(null)
+  const trackingAttendanceRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000)
@@ -229,6 +252,11 @@ export default function App() {
       })
       localStorage.setItem('alextranspo-session', JSON.stringify(s))
       setSession(s)
+      if (records.some(r => !r.time_out)) {
+        const current = records.find(r => !r.time_out)
+        if (current) await request('/rest/v1/live_locations?attendance_id=eq.' + current.id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ is_active: false }) }, session.access_token)
+        stopLiveTracking()
+      }
       await request('/rest/v1/auth_activity', {
         method: 'POST',
         headers: { Prefer: 'return=minimal' },
@@ -250,6 +278,56 @@ export default function App() {
     load(session.access_token, session.user.id).catch(e => setError(e.message))
   }, [session])
 
+  async function updateLiveLocation(attendanceId, position, active = true) {
+    if (!attendanceId) return
+    await request('/rest/v1/live_locations?on_conflict=attendance_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        employee_id: employee.id,
+        attendance_id: attendanceId,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        recorded_at: new Date().toISOString(),
+        is_active: active,
+      }),
+    }, session.access_token)
+  }
+
+  function stopLiveTracking() {
+    if (watchIdRef.current != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    trackingAttendanceRef.current = null
+  }
+
+  function startLiveTracking(attendanceId) {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.')
+      return
+    }
+    if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current)
+    trackingAttendanceRef.current = attendanceId
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      position => {
+        updateLiveLocation(attendanceId, position).catch(e => setError(e.message))
+      },
+      e => setError('Live GPS tracking error: ' + e.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+    )
+  }
+
+  useEffect(() => {
+    const open = records.find(r => !r.time_out)
+    if (open && trackingAttendanceRef.current !== open.id) startLiveTracking(open.id)
+    if (!open && trackingAttendanceRef.current != null) stopLiveTracking()
+    return () => {}
+  }, [records])
+
+  useEffect(() => () => stopLiveTracking(), [])
+
   async function timeIn() {
     setError('')
     try {
@@ -267,7 +345,12 @@ export default function App() {
           status: 'Present',
         }),
       }, session.access_token)
+      const created = row?.[0]
       setRecords([...(row || []), ...records])
+      if (created) {
+        await updateLiveLocation(created.id, { coords: { latitude: p.lat, longitude: p.lng, accuracy: p.accuracy } })
+        startLiveTracking(created.id)
+      }
     } catch (e) { setError(e.message) }
   }
 
@@ -279,6 +362,12 @@ export default function App() {
       const p = await gps()
       const nowValue = new Date()
       const hours = Math.max(0, (nowValue - new Date(current.time_in)) / 3600000)
+      stopLiveTracking()
+      await request('/rest/v1/live_locations?attendance_id=eq.' + current.id, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ is_active: false }),
+      }, session.access_token)
       const row = await request('/rest/v1/attendance?id=eq.' + current.id, {
         method: 'PATCH',
         headers: { Prefer: 'return=representation' },
