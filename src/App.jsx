@@ -29,6 +29,60 @@ function AdminMonitor({ session, employee, logout }) {
 
   useEffect(() => { refresh() }, [])
 
+  useEffect(() => {
+    let channel
+
+    async function subscribeToLiveGps() {
+      try {
+        await supabaseRealtime.realtime.setAuth(session.access_token)
+        channel = supabaseRealtime
+          .channel('admin-live-gps')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'live_locations' },
+            payload => {
+              if (payload.new?.is_active) {
+                setLiveLocations(current => [
+                  payload.new,
+                  ...current.filter(item => item.attendance_id !== payload.new.attendance_id),
+                ])
+              }
+            },
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'live_locations' },
+            payload => {
+              setLiveLocations(current => {
+                const next = current.filter(item => item.attendance_id !== payload.new?.attendance_id)
+                return payload.new?.is_active ? [payload.new, ...next] : next
+              })
+            },
+          )
+          .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'live_locations' },
+            payload => {
+              setLiveLocations(current => current.filter(item => item.attendance_id !== payload.old?.attendance_id))
+            },
+          )
+          .subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              setError('Live GPS realtime connection is unavailable. Refresh to retry.')
+            }
+          })
+      } catch (e) {
+        setError('Live GPS realtime connection failed: ' + e.message)
+      }
+    }
+
+    subscribeToLiveGps()
+
+    return () => {
+      if (channel) supabaseRealtime.removeChannel(channel)
+    }
+  }, [session.access_token])
+
   const latest = data.inspectors.map(inspector => {
     const rows = data.attendance.filter(r => r.employee_id === inspector.id)
     const record = rows.find(r => !r.time_out) || rows[0]
@@ -163,11 +217,13 @@ function AdminMonitor({ session, employee, logout }) {
 }
 
 import { useEffect, useRef, useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import './App.css'
 import LoginPage from './LoginPage'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://kpzkjielasziitnpszsn.supabase.co'
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_j2czXIhkabpD5oj2UE_wew_l-CeTZEw'
+const supabaseRealtime = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 async function request(path, options = {}, token = SUPABASE_KEY) {
   if (!SUPABASE_URL) throw new Error('Supabase URL is missing. Check VITE_SUPABASE_URL in your deployment environment.')
@@ -409,6 +465,15 @@ export default function App() {
 
   async function logout() {
     try {
+      const open = records.find(r => !r.time_out)
+      if (open) {
+        await request('/rest/v1/live_locations?attendance_id=eq.' + open.id, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ is_active: false }),
+        }, session.access_token)
+      }
+      stopLiveTracking()
       await request('/rest/v1/auth_activity', {
         method: 'POST',
         body: JSON.stringify({ user_id: session.user.id, email: session.user.email, action: 'logout' }),
