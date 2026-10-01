@@ -248,11 +248,11 @@ function AdminMonitor({ session, employee, logout }) {
     <header className="topbar"><div><span className="eyebrow">ALEXTRANSPO ADMIN</span><h1>{nav.find(x=>x[0]===page)?.[2]||'Dashboard'}</h1><p>Manage inspectors, attendance, GPS, payroll, and reports</p></div><div className="employee"><strong>{employee.full_name}</strong><span>Administrator</span><button onClick={logout}>Sign out</button></div></header>
     <nav className="admin-nav">{nav.map(([k,icon,label])=><button key={k} className={page===k?'active':''} onClick={()=>setPage(k)}><span>{icon}</span>{label}</button>)}</nav>
     {error&&<p className="error-message">{error}</p>}
-    {page==='dashboard'&&<Dashboard/>}
-    {page==='records'&&<Records/>}
-    {page==='accounts'&&<Accounts/>}
-    {page==='settings'&&<Settings/>}
-    {page==='reports'&&<Reports/>}
+    {page==='dashboard'&&Dashboard()}
+    {page==='records'&&Records()}
+    {page==='accounts'&&Accounts()}
+    {page==='settings'&&Settings()}
+    {page==='reports'&&Reports()}
   </main>
 }
 
