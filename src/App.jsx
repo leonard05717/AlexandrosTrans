@@ -136,10 +136,13 @@ function AdminMonitor({ session, employee, logout }) {
   async function addInspector(e) {
     e.preventDefault(); setAccountStatus('')
     try {
+      const { data: refreshed, error: refreshError } = await supabaseRealtime.auth.refreshSession()
+      const accessToken = refreshed?.session?.access_token || session.access_token
+      if (refreshError && !accessToken) throw new Error('Your admin session has expired. Please sign in again.')
       const result = await request('/functions/v1/admin-create-inspector', {
         method:'POST',
         body: JSON.stringify(newInspector),
-      }, session.access_token)
+      }, accessToken)
       setAccountStatus(`Inspector account ${result.employee.full_name} was created successfully.`)
       setNewInspector({ full_name:'', employee_code:'', email:'', password:'', department:'Inspection' })
       await refresh()
