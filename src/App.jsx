@@ -1,3 +1,34 @@
+function StableGpsMap({ latitude, longitude, title, className = '' }) {
+  const initial = useRef({ latitude: Number(latitude), longitude: Number(longitude) })
+  const [position, setPosition] = useState({ latitude: Number(latitude), longitude: Number(longitude) })
+
+  useEffect(() => {
+    if (latitude == null || longitude == null) return
+    setPosition({ latitude: Number(latitude), longitude: Number(longitude) })
+  }, [latitude, longitude])
+
+  if (!Number.isFinite(initial.current.latitude) || !Number.isFinite(initial.current.longitude)) return null
+
+  const span = 0.01
+  const minLat = initial.current.latitude - span
+  const maxLat = initial.current.latitude + span
+  const minLng = initial.current.longitude - span
+  const maxLng = initial.current.longitude + span
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+  const left = ((clamp(position.longitude, minLng, maxLng) - minLng) / (maxLng - minLng)) * 100
+  const top = (1 - ((clamp(position.latitude, minLat, maxLat) - minLat) / (maxLat - minLat))) * 100
+
+  const src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
+    minLng + '%2C' + minLat + '%2C' + maxLng + '%2C' + maxLat + '&layer=mapnik'
+
+  return (
+    <div className={'stable-map ' + className}>
+      <iframe title={title} src={src} />
+      <span className="stable-map-marker" style={{ left: left + '%', top: top + '%' }} aria-label="Current GPS location">●</span>
+    </div>
+  )
+}
+
 function AdminMonitor({ session, employee, logout }) {
   const [page, setPage] = useState('dashboard')
   const [data, setData] = useState({ inspectors: [], attendance: [] })
@@ -151,7 +182,7 @@ function AdminMonitor({ session, employee, logout }) {
         </tbody></table></div>
       </section>
       <section className="card history-card"><div className="card-heading"><div><span className="label">LIVE GPS MONITORING</span><h2>Inspector Locations — Live</h2><p>Current location while inspectors are clocked in.</p></div></div><div className="live-grid">
-        {latest.filter(x=>x.live).map(({inspector,record,live})=><article className="live-card" key={inspector.id}><div className="live-card-head"><strong>{inspector.full_name}</strong><span className="live-badge">● LIVE</span></div><div className="live-map"><iframe title={'Live GPS '+inspector.full_name} src={'https://www.openstreetmap.org/export/embed.html?bbox='+(Number(live.longitude)-.01)+'%2C'+(Number(live.latitude)-.01)+'%2C'+(Number(live.longitude)+.01)+'%2C'+(Number(live.latitude)+.01)+'&layer=mapnik&marker='+Number(live.latitude)+'%2C'+Number(live.longitude)} /></div><div className="live-details"><span>Time In: {formatDateTime(record?.time_in)}</span><span>GPS: {gpsText(live.latitude,live.longitude)}</span><span>Accuracy: {live.accuracy!=null?Number(live.accuracy).toFixed(1)+' m':'—'}</span><span>Updated: {formatDateTime(live.recorded_at)}</span></div></article>)}
+        {latest.filter(x=>x.live).map(({inspector,record,live})=><article className="live-card" key={inspector.id}><div className="live-card-head"><strong>{inspector.full_name}</strong><span className="live-badge">● LIVE</span></div><div className="live-map"><StableGpsMap latitude={live.latitude} longitude={live.longitude} title={'Live GPS '+inspector.full_name} /></div><div className="live-details"><span>Time In: {formatDateTime(record?.time_in)}</span><span>GPS: {gpsText(live.latitude,live.longitude)}</span><span>Accuracy: {live.accuracy!=null?Number(live.accuracy).toFixed(1)+' m':'—'}</span><span>Updated: {formatDateTime(live.recorded_at)}</span></div></article>)}
         {liveNow===0&&<p className="empty">No inspector is currently reporting a live GPS location.</p>}
       </div></section>
     </>
@@ -292,7 +323,7 @@ function InspectorPage({ employee, records, error, now, timeIn, timeOut, logout,
       <section className="inspector-content"><div className="inspector-mobile-nav">{nav.map(([k,i,l])=><button key={k} className={page===k?'active':''} onClick={()=>setPage(k)}><span>{i}</span>{l}</button>)}</div>
         {page==='dashboard'&&<><div className="page-heading"><div><span className="eyebrow">DASHBOARD</span><h1>Good day, {employee.full_name}</h1><p>Track your attendance, work hours, and GPS activity.</p></div><span className={open?'status active':'status'}>{open?'● Working':'● Not working'}</span></div>
         <section className="dashboard-grid"><article className="card attendance-card"><div className="card-heading"><div><span className="label">TODAY</span><h2>{formatDate(now)}</h2></div></div><div className="clock">{new Intl.DateTimeFormat('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now)}</div><div className="actions"><button className="time-in" disabled={Boolean(open)} onClick={timeIn}>Time In</button><button className="time-out" disabled={!open} onClick={timeOut}>Time Out</button></div>{error&&<p className="error-message">{error}</p>}<div className="location-box"><strong>GPS Tracking</strong><span>{mapLat!=null&&mapLng!=null?Number(mapLat).toFixed(6)+', '+Number(mapLng).toFixed(6):'No location recorded yet'}</span><small>GPS is captured only when Time In or Time Out is pressed.</small></div></article>
-        <article className="card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Attendance Location</h2></div></div>{mapLat!=null&&mapLng!=null?<iframe className="map" title="Attendance GPS map" src={'https://www.openstreetmap.org/export/embed.html?bbox='+(Number(mapLng)-.01)+'%2C'+(Number(mapLat)-.01)+'%2C'+(Number(mapLng)+.01)+'%2C'+(Number(mapLat)+.01)+'&layer=mapnik&marker='+Number(mapLat)+'%2C'+Number(mapLng)}/>:<div className="map-placeholder"><span>📍</span><p>Time In to record a GPS location.</p></div>}</article></section>
+        <article className="card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Attendance Location</h2></div></div>{mapLat!=null&&mapLng!=null?<StableGpsMap className="map" latitude={mapLat} longitude={mapLng} title="Attendance GPS map" />:<div className="map-placeholder"><span>📍</span><p>Time In to record a GPS location.</p></div>}</article></section>
         <section className="stats-grid"><article className="stat-card"><span>WORKED DAYS</span><strong>{workedDays}</strong><small>Saturday – Friday</small></article><article className="stat-card"><span>TOTAL HOURS</span><strong>{formatHours(totalHours)}</strong><small>This work week</small></article><article className="stat-card"><span>WEEK PERIOD</span><strong>{formatDate(weekStart)}</strong><small>to {formatDate(weekEnd)}</small></article></section></>}
 
         {page==='account'&&<section className="card page-card"><div className="page-heading"><div><span className="eyebrow">ACCOUNT</span><h1>My Account</h1><p>Your employee profile and account information.</p></div></div><div className="profile-grid"><div className="profile-avatar">{employee.full_name?.slice(0,1).toUpperCase()}</div><div><span className="label">FULL NAME</span><h2>{employee.full_name}</h2><p>{employee.department||'Inspection'}</p></div></div><div className="detail-grid"><div><span>Employee Code</span><strong>{employee.employee_code}</strong></div><div><span>Role</span><strong>{employee.role}</strong></div><div><span>Department</span><strong>{employee.department||'Inspection'}</strong></div><div><span>Account Status</span><strong>{employee.active?'Active':'Inactive'}</strong></div><div><span>Email</span><strong>{session.user?.email||'—'}</strong></div></div><div className="account-note">Your profile details are managed by the AlexTranspo administrator. Contact the administrator if your information needs to be corrected.</div></section>}
