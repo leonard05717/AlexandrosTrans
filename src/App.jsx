@@ -1,27 +1,33 @@
 function AdminMonitor({ session, employee, logout }) {
+  const [page, setPage] = useState('dashboard')
   const [data, setData] = useState({ inspectors: [], attendance: [] })
+  const [liveLocations, setLiveLocations] = useState([])
+  const [reports, setReports] = useState([])
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [liveLocations, setLiveLocations] = useState([])
+  const [accountStatus, setAccountStatus] = useState('')
+  const [reportStatus, setReportStatus] = useState('')
+  const [reportFilter, setReportFilter] = useState('All')
+  const [newInspector, setNewInspector] = useState({ full_name:'', employee_code:'', email:'', password:'', department:'Inspection' })
 
   async function refresh() {
     setRefreshing(true)
     try {
-      const inspectors = await request('/rest/v1/employees?role=eq.inspector&active=eq.true&select=id,employee_code,full_name,department', {}, session.access_token)
-      const attendance = await request('/rest/v1/attendance?select=*&order=work_date.desc,time_in.desc', {}, session.access_token)
-      const live = await request('/rest/v1/live_locations?is_active=eq.true&select=*&order=recorded_at.desc', {}, session.access_token)
+      const [inspectors, attendance, live, reportRows] = await Promise.all([
+        request('/rest/v1/employees?role=eq.inspector&select=id,user_id,employee_code,full_name,department,active,role,created_at&order=created_at.desc', {}, session.access_token),
+        request('/rest/v1/attendance?select=*&order=work_date.desc,time_in.desc', {}, session.access_token),
+        request('/rest/v1/live_locations?is_active=eq.true&select=*&order=recorded_at.desc', {}, session.access_token),
+        request('/rest/v1/issue_reports?select=*&order=created_at.desc', {}, session.access_token),
+      ])
       setData({ inspectors: inspectors || [], attendance: attendance || [] })
       setLiveLocations(live || [])
+      setReports(reportRows || [])
       setError('')
     } catch (e) { setError(e.message) }
     finally { setRefreshing(false) }
   }
 
-  useEffect(() => {
-    refresh()
-    const timer = setInterval(refresh, 5000)
-    return () => clearInterval(timer)
-  }, [])
+  useEffect(() => { refresh() }, [])
 
   const latest = data.inspectors.map(inspector => {
     const rows = data.attendance.filter(r => r.employee_id === inspector.id)
@@ -29,112 +35,130 @@ function AdminMonitor({ session, employee, logout }) {
     const live = liveLocations.find(x => x.attendance_id === record?.id)
     return { inspector, record, live }
   })
-
   const inspectorById = new Map(data.inspectors.map(i => [i.id, i]))
-  const formatDateTime = value => value
-    ? new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-    : '—'
-  const gpsText = (lat, lng) =>
-    lat != null && lng != null
-      ? `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`
-      : '—'
+  const formatDateTime = value => value ? new Intl.DateTimeFormat('en-PH', { dateStyle:'medium', timeStyle:'short' }).format(new Date(value)) : '—'
+  const gpsText = (lat,lng) => lat != null && lng != null ? `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}` : '—'
 
+  async function addInspector(e) {
+    e.preventDefault(); setAccountStatus('')
+    try {
+      const result = await request('/functions/v1/admin-create-inspector', {
+        method:'POST',
+        body: JSON.stringify(newInspector),
+      }, session.access_token)
+      setAccountStatus(`Inspector account ${result.employee.full_name} was created successfully.`)
+      setNewInspector({ full_name:'', employee_code:'', email:'', password:'', department:'Inspection' })
+      await refresh()
+    } catch (e) { setAccountStatus(e.message) }
+  }
+
+  async function toggleInspector(inspector) {
+    setAccountStatus('')
+    try {
+      await request('/rest/v1/employees?id=eq.' + inspector.id, {
+        method:'PATCH',
+        headers:{ Prefer:'return=minimal' },
+        body:JSON.stringify({ active: !inspector.active }),
+      }, session.access_token)
+      setAccountStatus(`${inspector.full_name} is now ${!inspector.active ? 'active' : 'inactive'}.`)
+      await refresh()
+    } catch (e) { setAccountStatus(e.message) }
+  }
+
+  async function updateReportStatus(report, status) {
+    setReportStatus('')
+    try {
+      await request('/rest/v1/issue_reports?id=eq.' + report.id, {
+        method:'PATCH',
+        headers:{ Prefer:'return=minimal' },
+        body:JSON.stringify({ status }),
+      }, session.access_token)
+      setReportStatus('Report status updated.')
+      await refresh()
+    } catch (e) { setReportStatus(e.message) }
+  }
+
+  const workingNow = latest.filter(x => x.record && !x.record.time_out).length
+  const liveNow = latest.filter(x => x.live).length
+  const filteredReports = reports.filter(r => reportFilter === 'All' || r.status === reportFilter)
+
+  function Dashboard() {
+    return <>
+      <section className="stats-grid">
+        <article className="stat-card"><span>INSPECTOR ACCOUNTS</span><strong>{data.inspectors.length}</strong><small>Inspector accounts</small></article>
+        <article className="stat-card"><span>WORKING NOW</span><strong>{workingNow}</strong><small>Open Time In records</small></article>
+        <article className="stat-card"><span>LIVE GPS</span><strong>{liveNow}</strong><small>Inspectors reporting location</small></article>
+        <article className="stat-card"><span>REPORTS</span><strong>{reports.filter(r=>r.status!=='Resolved').length}</strong><small>Open problem reports</small></article>
+      </section>
+      <section className="card">
+        <div className="card-heading"><div><span className="label">INSPECTOR MONITOR</span><h2>Inspector Status</h2><p>Current attendance and GPS status for active inspectors.</p></div></div>
+        <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Status</th><th>Time In</th><th>Time Out</th><th>GPS</th></tr></thead><tbody>
+          {latest.map(({inspector,record,live})=><tr key={inspector.id}><td><strong>{inspector.full_name}</strong><br/><small>{inspector.employee_code}</small></td><td><span className={record&&!record.time_out?'pill present':'pill absent'}>{record&&!record.time_out?'Working':'Not working'}</span></td><td>{formatDateTime(record?.time_in)}</td><td>{formatDateTime(record?.time_out)}</td><td>{live?<span className="live-badge">● LIVE</span>:gpsText(record?.time_in_lat,record?.time_in_lng)}</td></tr>)}
+        </tbody></table></div>
+      </section>
+      <section className="card history-card"><div className="card-heading"><div><span className="label">LIVE GPS MONITORING</span><h2>Inspector Locations — Live</h2><p>Current location while inspectors are clocked in.</p></div></div><div className="live-grid">
+        {latest.filter(x=>x.live).map(({inspector,record,live})=><article className="live-card" key={inspector.id}><div className="live-card-head"><strong>{inspector.full_name}</strong><span className="live-badge">● LIVE</span></div><div className="live-map"><iframe title={'Live GPS '+inspector.full_name} src={'https://www.openstreetmap.org/export/embed.html?bbox='+(Number(live.longitude)-.01)+'%2C'+(Number(live.latitude)-.01)+'%2C'+(Number(live.longitude)+.01)+'%2C'+(Number(live.latitude)+.01)+'&layer=mapnik&marker='+Number(live.latitude)+'%2C'+Number(live.longitude)} /></div><div className="live-details"><span>Time In: {formatDateTime(record?.time_in)}</span><span>GPS: {gpsText(live.latitude,live.longitude)}</span><span>Accuracy: {live.accuracy!=null?Number(live.accuracy).toFixed(1)+' m':'—'}</span><span>Updated: {formatDateTime(live.recorded_at)}</span></div></article>)}
+        {liveNow===0&&<p className="empty">No inspector is currently reporting a live GPS location.</p>}
+      </div></section>
+    </>
+  }
+
+  function Records() {
+    return <>
+      <section className="card history-card"><div className="card-heading"><div><span className="label">ATTENDANCE RECORDS</span><h2>All Inspector Time In / Time Out</h2><p>Complete attendance and GPS history.</p></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Work Date</th><th>Time In</th><th>Time In GPS</th><th>Time Out</th><th>Time Out GPS</th><th>Hours</th></tr></thead><tbody>
+        {data.attendance.map(record=>{const i=inspectorById.get(record.employee_id);return <tr key={record.id}><td><strong>{i?.full_name||'Unknown inspector'}</strong><br/><small>{i?.employee_code||record.employee_id}</small></td><td>{record.work_date||'—'}</td><td>{formatDateTime(record.time_in)}</td><td>{gpsText(record.time_in_lat,record.time_in_lng)}</td><td>{formatDateTime(record.time_out)}</td><td>{gpsText(record.time_out_lat,record.time_out_lng)}</td><td>{Number(record.total_hours||0).toFixed(2)}</td></tr>})}
+      </tbody></table></div></section>
+      <section className="card payroll-card"><div className="card-heading"><div><span className="label">PAYROLL</span><h2>Weekly Payroll — Saturday to Friday</h2><p>Regular ₱77.777/hour for first 9 hours · OT ₱86/hour after 9 hours</p></div><button className="print-button no-print" onClick={()=>window.print()}>🖨 Print Payroll</button></div>
+      <div className="table-wrap"><table className="payroll-table"><thead><tr><th>Inspector</th><th>Days Worked</th><th>Total Hours</th><th>Regular Pay</th><th>OT Hours</th><th>OT Pay</th><th>Total Pay</th></tr></thead><tbody>
+      {data.inspectors.map(i=>{const rows=data.attendance.filter(r=>r.employee_id===i.id);const totalHours=rows.reduce((s,r)=>s+Number(r.total_hours||0),0);const regularHours=rows.reduce((s,r)=>s+Math.min(Number(r.total_hours||0),9),0);const ot=rows.reduce((s,r)=>s+Math.max(0,Number(r.total_hours||0)-9),0);const regularPay=regularHours*77.777;const otPay=ot*86;return <tr key={i.id}><td><strong>{i.full_name}</strong><br/><small>{i.employee_code}</small></td><td>{rows.length}</td><td>{totalHours.toFixed(2)}</td><td>₱{regularPay.toFixed(2)}</td><td>{ot.toFixed(2)}</td><td>₱{otPay.toFixed(2)}</td><td><strong>₱{(regularPay+otPay).toFixed(2)}</strong></td></tr>})}
+      </tbody></table></div></section>
+    </>
+  }
+
+  function Accounts() {
+    return <section className="admin-two-column"><article className="card page-card"><div className="page-heading"><div><span className="eyebrow">ACCOUNT MANAGEMENT</span><h1>Add Inspector Account</h1><p>Create a login and employee profile for a new inspector.</p></div></div>
+      <form className="report-form" onSubmit={addInspector}>
+        <label>Full name<input required value={newInspector.full_name} onChange={e=>setNewInspector({...newInspector,full_name:e.target.value})} placeholder="Inspector full name"/></label>
+        <label>Employee code<input required value={newInspector.employee_code} onChange={e=>setNewInspector({...newInspector,employee_code:e.target.value})} placeholder="INSPECTOR002"/></label>
+        <label>Email address<input required type="email" value={newInspector.email} onChange={e=>setNewInspector({...newInspector,email:e.target.value})} placeholder="inspector@example.com"/></label>
+        <label>Temporary password<input required minLength="8" type="password" value={newInspector.password} onChange={e=>setNewInspector({...newInspector,password:e.target.value})} placeholder="At least 8 characters"/></label>
+        <label>Department<input value={newInspector.department} onChange={e=>setNewInspector({...newInspector,department:e.target.value})}/></label>
+        {accountStatus&&<p className={accountStatus.includes('successfully')||accountStatus.includes('now')?'success-message':'error-message'}>{accountStatus}</p>}
+        <button className="login-submit" type="submit">Create Inspector Account</button>
+      </form>
+    </article>
+    <article className="card page-card"><div className="card-heading"><div><span className="label">INSPECTOR ACCOUNTS</span><h2>Manage Accounts</h2></div><button onClick={refresh} disabled={refreshing}>{refreshing?'Refreshing...':'Refresh'}</button></div>
+      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Email</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>
+      {data.inspectors.map(i=><tr key={i.id}><td><strong>{i.full_name}</strong><br/><small>{i.employee_code}</small></td><td>{i.user_id.slice(0,8)}…</td><td>{i.department||'Inspection'}</td><td><span className={i.active?'pill present':'pill absent'}>{i.active?'Active':'Inactive'}</span></td><td><button onClick={()=>toggleInspector(i)}>{i.active?'Deactivate':'Activate'}</button></td></tr>)}
+      </tbody></table></div></article></section>
+  }
+
+  function Reports() {
+    return <section className="card page-card"><div className="card-heading"><div><span className="label">REPORTS</span><h2>Inspector Problem Reports</h2><p>Review reports submitted by inspectors and update their status.</p></div><button onClick={refresh} disabled={refreshing}>{refreshing?'Refreshing...':'Refresh'}</button></div>
+      <div className="report-filters"><button className={reportFilter==='All'?'active':''} onClick={()=>setReportFilter('All')}>All</button><button className={reportFilter==='Open'?'active':''} onClick={()=>setReportFilter('Open')}>Open</button><button className={reportFilter==='In Progress'?'active':''} onClick={()=>setReportFilter('In Progress')}>In Progress</button><button className={reportFilter==='Resolved'?'active':''} onClick={()=>setReportFilter('Resolved')}>Resolved</button></div>
+      {reportStatus&&<p className={reportStatus.includes('updated')?'success-message':'error-message'}>{reportStatus}</p>}
+      <div className="report-list">{filteredReports.length===0?<p className="empty">No reports found.</p>:filteredReports.map(r=>{const i=inspectorById.get(r.employee_id);return <article className="report-item" key={r.id}><div><strong>{r.subject}</strong><span>{i?.full_name||'Unknown inspector'} · {r.category} · {formatDateTime(r.created_at)}</span></div><select value={r.status||'Open'} onChange={e=>updateReportStatus(r,e.target.value)}><option>Open</option><option>In Progress</option><option>Resolved</option></select><p>{r.description}</p></article>})}</div>
+    </section>
+  }
+
+  function Settings() {
+    return <section className="card page-card"><div className="page-heading"><div><span className="eyebrow">SETTINGS</span><h1>System Settings</h1><p>Current AlexTranspo attendance and payroll rules.</p></div></div>
+      <div className="settings-list"><div><div><strong>GPS Verification</strong><small>Browser GPS is required for Time In and Time Out.</small></div><span className="setting-badge">Enabled</span></div><div><div><strong>Live Inspector GPS</strong><small>Active inspectors continuously report their current location while clocked in.</small></div><span className="setting-badge">Enabled</span></div><div><div><strong>Work Week</strong><small>Attendance period is Saturday through Friday.</small></div><span className="setting-badge">Saturday – Friday</span></div><div><div><strong>Regular Rate</strong><small>First 9 hours of recorded attendance.</small></div><span className="setting-badge">₱77.777 / hour</span></div><div><div><strong>Overtime Rate</strong><small>Hours beyond 9 hours in a workday.</small></div><span className="setting-badge">₱86 / hour</span></div></div>
+      <div className="account-note">Account creation and attendance rules are controlled by administrators. Changes to payroll rules should be reviewed before changing application logic.</div>
+    </section>
+  }
+
+  const nav=[['dashboard','⌂','Dashboard'],['records','▤','Records'],['accounts','◉','Account Management'],['settings','⚙','Settings'],['reports','⚠','Reports']]
   return <main className="app-shell">
-    <header className="topbar">
-      <div><span className="eyebrow">ALEXTRANSPO</span><h1>Inspector Monitoring</h1><p>Monitor all inspector accounts, Time In / Time Out and GPS locations</p></div>
-      <div className="employee"><strong>{employee.full_name}</strong><span>Administrator</span><button onClick={logout}>Sign out</button></div>
-    </header>
-
-    <section className="stats-grid">
-      <article className="stat-card"><span>INSPECTOR ACCOUNTS</span><strong>{data.inspectors.length}</strong><small>Active inspector accounts</small></article>
-      <article className="stat-card"><span>WORKING NOW</span><strong>{latest.filter(x => x.record && !x.record.time_out).length}</strong><small>Open Time In records</small></article>
-      <article className="stat-card"><span>ATTENDANCE RECORDS</span><strong>{data.attendance.length}</strong><small>All recorded Time In / Out entries</small></article>
-    </section>
-
-    <section className="card">
-      <div className="card-heading"><div><span className="label">INSPECTOR MONITOR</span><h2>All Inspector Accounts</h2></div><button onClick={refresh} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh'}</button></div>
-      {error && <p className="error-message">{error}</p>}
-      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Status</th><th>Latest Time In</th><th>Latest Time Out</th><th>Time In GPS</th><th>Time Out GPS</th></tr></thead>
-      <tbody>{latest.map(({ inspector, record }) => <tr key={inspector.id}>
-        <td><strong>{inspector.full_name}</strong><br /><small>{inspector.employee_code}</small></td>
-        <td><span className={record && !record.time_out ? 'pill present' : 'pill absent'}>{record && !record.time_out ? 'Working' : 'Not working'}</span></td>
-        <td>{formatDateTime(record?.time_in)}</td>
-        <td>{formatDateTime(record?.time_out)}</td>
-        <td>{gpsText(record?.time_in_lat, record?.time_in_lng)}</td>
-        <td>{gpsText(record?.time_out_lat, record?.time_out_lng)}</td>
-      </tr>)}</tbody></table></div>
-    </section>
-
-    <section className="card history-card">
-      <div className="card-heading"><div><span className="label">LIVE GPS MONITORING</span><h2>Inspector Locations — Live</h2><p>Updates automatically while inspectors are clocked in.</p></div></div>
-      <div className="live-grid">
-        {latest.filter(x => x.live).map(({ inspector, record, live }) => <article className="live-card" key={inspector.id}>
-          <div className="live-card-head"><strong>{inspector.full_name}</strong><span className="live-badge">● LIVE</span></div>
-          <div className="live-map"><iframe title={'Live GPS '+inspector.full_name} src={'https://www.openstreetmap.org/export/embed.html?bbox='+(Number(live.longitude)-.01)+'%2C'+(Number(live.latitude)-.01)+'%2C'+(Number(live.longitude)+.01)+'%2C'+(Number(live.latitude)+.01)+'&layer=mapnik&marker='+Number(live.latitude)+'%2C'+Number(live.longitude)} /></div>
-          <div className="live-details"><span>Time In: {formatDateTime(record?.time_in)}</span><span>GPS: {gpsText(live.latitude, live.longitude)}</span><span>Accuracy: {live.accuracy != null ? Number(live.accuracy).toFixed(1)+' m' : '—'}</span><span>Updated: {formatDateTime(live.recorded_at)}</span></div>
-        </article>)}
-        {latest.filter(x => x.live).length === 0 && <p className="empty">No inspector is currently reporting a live GPS location.</p>}
-      </div>
-    </section>
-
-    <section className="card history-card">
-      <div className="card-heading"><div><span className="label">ATTENDANCE HISTORY</span><h2>All Time In / Time Out GPS Records</h2></div></div>
-      <div className="table-wrap"><table><thead><tr><th>Inspector</th><th>Work Date</th><th>Time In</th><th>Time In GPS</th><th>Time Out</th><th>Time Out GPS</th><th>Hours</th></tr></thead>
-      <tbody>
-        {data.attendance.map(record => {
-          const inspector = inspectorById.get(record.employee_id)
-          return <tr key={record.id}>
-            <td><strong>{inspector?.full_name || 'Unknown inspector'}</strong><br /><small>{inspector?.employee_code || record.employee_id}</small></td>
-            <td>{record.work_date || '—'}</td>
-            <td>{formatDateTime(record.time_in)}</td>
-            <td>{gpsText(record.time_in_lat, record.time_in_lng)}</td>
-            <td>{formatDateTime(record.time_out)}</td>
-            <td>{gpsText(record.time_out_lat, record.time_out_lng)}</td>
-            <td>{Number(record.total_hours || 0).toFixed(2)}</td>
-          </tr>
-        })}
-      </tbody></table></div>
-      {data.attendance.length === 0 && <p className="empty">No attendance records have been recorded yet.</p>}
-    </section>
-
-    <section className="card payroll-card">
-      <div className="card-heading">
-        <div><span className="label">PAYROLL</span><h2>Weekly Payroll — Saturday to Friday</h2><p>Regular rate: ₱77.777/hour for the first 9 hours · OT: ₱86/hour after 9 hours</p></div>
-        <button className="print-button no-print" onClick={() => window.print()}>🖨 Print Payroll</button>
-      </div>
-      <div className="payroll-period">Payroll period: {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n); return d })())} — {new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format((() => { const d=new Date(); const n=(d.getDay()+1)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-n+6); return d })())}</div>
-      <div className="table-wrap">
-        <table className="payroll-table">
-          <thead><tr><th>Inspector</th><th>Days Worked</th><th>Total Hours</th><th>Regular Pay</th><th>OT Hours</th><th>OT Pay</th><th>Total Pay</th></tr></thead>
-          <tbody>
-            {data.inspectors.map(inspector => {
-              const rows = data.attendance.filter(r => r.employee_id === inspector.id).filter(r => {
-                const d=new Date(r.work_date+'T00:00:00'); const w=new Date(); const n=(w.getDay()+1)%7; w.setHours(0,0,0,0); w.setDate(w.getDate()-n); const e=new Date(w); e.setDate(e.getDate()+6); e.setHours(23,59,59,999); return d>=w && d<=e
-              })
-              const totalHours=rows.reduce((s,r)=>s+Number(r.total_hours||0),0)
-              const regularHours=rows.reduce((s,r)=>s+Math.min(Number(r.total_hours||0),9),0)
-              const ot=rows.reduce((s,r)=>s+Math.max(0,Number(r.total_hours||0)-9),0)
-              const regularPay=regularHours*77.777
-              const otPay=ot*86
-              return <tr key={inspector.id}>
-                <td><strong>{inspector.full_name}</strong><br/><small>{inspector.employee_code}</small></td>
-                <td>{rows.length}</td><td>{totalHours.toFixed(2)}</td><td>₱{regularPay.toFixed(2)}</td><td>{ot.toFixed(2)}</td><td>₱{otPay.toFixed(2)}</td><td><strong>₱{(regularPay+otPay).toFixed(2)}</strong></td>
-              </tr>
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="payroll-note">Payroll is calculated from recorded Time In / Time Out attendance. GPS coordinates remain available in the attendance history above.</div>
-    </section>
-
-    <section className="card history-card"><div className="card-heading"><div><span className="label">GPS MAP</span><h2>Latest Inspector Time In</h2></div></div>
-      {(() => {
-        const item = latest.find(x => x.record?.time_in_lat != null && x.record?.time_in_lng != null)
-        if (!item) return <div className="map-placeholder"><span>📍</span><p>No inspector GPS location recorded yet.</p></div>
-        const lat = Number(item.record.time_in_lat), lng = Number(item.record.time_in_lng)
-        return <><iframe className="map" title="Inspector GPS map" src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - .01}%2C${lat - .01}%2C${lng + .01}%2C${lat + .01}&layer=mapnik&marker=${lat}%2C${lng}`} /><div className="coordinates"><span>{item.inspector.full_name}</span><span>Latitude: {lat.toFixed(6)}</span><span>Longitude: {lng.toFixed(6)}</span></div></>
-      })()}
-    </section>
+    <header className="topbar"><div><span className="eyebrow">ALEXTRANSPO ADMIN</span><h1>{nav.find(x=>x[0]===page)?.[2]||'Dashboard'}</h1><p>Manage inspectors, attendance, GPS, payroll, and reports</p></div><div className="employee"><strong>{employee.full_name}</strong><span>Administrator</span><button onClick={logout}>Sign out</button></div></header>
+    <nav className="admin-nav">{nav.map(([k,icon,label])=><button key={k} className={page===k?'active':''} onClick={()=>setPage(k)}><span>{icon}</span>{label}</button>)}</nav>
+    {error&&<p className="error-message">{error}</p>}
+    {page==='dashboard'&&<Dashboard/>}
+    {page==='records'&&<Records/>}
+    {page==='accounts'&&<Accounts/>}
+    {page==='settings'&&<Settings/>}
+    {page==='reports'&&<Reports/>}
   </main>
 }
 
