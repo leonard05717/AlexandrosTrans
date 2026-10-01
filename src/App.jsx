@@ -58,7 +58,14 @@ function AdminMonitor({ session, employee, logout }) {
     finally { setRefreshing(false) }
   }
 
-  useEffect(() => { refresh() }, [])
+  useEffect(() => {
+    refresh()
+    const timer = setInterval(() => {
+      refresh()
+    }, 5 * 60 * 1000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     let channel
