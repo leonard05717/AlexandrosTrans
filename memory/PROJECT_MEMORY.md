@@ -43,3 +43,16 @@ Next.js or React + Node; Supabase Postgres/Auth/Realtime; Leaflet with OpenStree
 12. Polish/deploy: mobile responsiveness, security review, deployment instructions.
 
 No application implementation has been confirmed yet. Do not claim features are built until code and tests verify them.
+
+
+## Approved decisions (2026-10-15)
+- Stack selected: React + Vite.
+- Admin assigns buses and routes to drivers/conductors.
+- Payroll periods: 1st–15th and 16th–last day of each month.
+- Overtime is calculated from elapsed shift time, starting after 9 hours.
+- Prepare a draft PITX ↔ MOA route for review before database setup.
+
+## Current status
+- Step 1 plan choices are approved.
+- A draft route is documented in root `PROGRESS.md`, with stops/waypoints explicitly marked unverified.
+- Step 2 must wait until the user confirms/corrects the draft route's endpoint and candidate stops. Do not represent the draft as an official route.
