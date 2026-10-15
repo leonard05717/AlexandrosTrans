@@ -7,10 +7,37 @@
 - `PROGRESS.md` did not exist when checked at the start of this task, so this file is being created as the project memory required by the user.
 
 ## Step 1 — Plan
-**Status: partial — awaiting user approval.**
+**Status: done — stack and operating choices approved on 2026-10-15. Route draft prepared for review before Step 2.**
 
-### Proposed stack
-- Next.js App Router + TypeScript for the mobile-first web app and protected server routes.
+### Approved decisions
+- Stack: React + Vite.
+- Bus assignment: admin assigns buses and routes to drivers/conductors.
+- Payroll periods: 1st–15th and 16th–last day of each month.
+- Overtime basis: elapsed time from shift start to shift end; overtime begins after 9 hours.
+- Route plan: prepare a draft PITX ↔ MOA stop list/path for review.
+- Other approved direction: Supabase Postgres/Auth/Realtime, Leaflet/OpenStreetMap, mobile-first geolocation, and role-based access remain the proposed implementation choices.
+
+### Draft route proposal — NOT YET APPROVED
+Official PITX route information lists MOA service via a modern jeepney route, and route references for PITX-to-MOA mention the City of Dreams/DFA/MOA corridor. The exact operator path and stop sequence for this app have not been confirmed. Treat the following as a reviewable product draft, not an official transit schedule or verified route geometry.
+
+**PITX → MOA (draft ordered waypoints)**
+1. PITX terminal (start)
+2. City of Dreams / Aseana area (candidate waypoint)
+3. DFA / Macapagal Boulevard area (candidate waypoint)
+4. SMX Convention Center / MOA complex (candidate waypoint)
+5. MOA South Wing / transport bay (candidate endpoint)
+6. MOA North Wing / designated MOA pickup point (candidate endpoint, if this is the intended service endpoint)
+
+**MOA → PITX:** reverse the approved waypoint order, using the actual safe/legal return-road geometry and designated pickup/drop-off bays.
+
+**Route implementation notes**
+- These are draft landmarks, not confirmed official stops. Some are alternatives/endpoints rather than stops that a bus must serve.
+- Use actual road-following polyline geometry (not straight lines between pins) once the exact route is approved.
+- Confirm whether the bus should terminate at one MOA bay or serve multiple MOA stops, and whether City of Dreams and DFA are actual passenger stops or only navigation waypoints.
+- Source references: PITX official transport guide https://pitx.ph/passengers-guide/transport/ and PITX routes guide https://pitx.ph/routes-guide/. These establish PITX–MOA service context but do not confirm the complete stop sequence proposed above.
+
+### Approved stack
+- React + Vite for the mobile-first web app. Use Supabase Auth/Database policies and server-side/Edge Function checks where privileged operations are needed.
 - Supabase Postgres, Auth, and Realtime for data and authentication.
 - Leaflet + OpenStreetMap for passenger and admin maps.
 - Browser Geolocation API for driver/conductor/inspector location sharing.
@@ -69,10 +96,9 @@ memory/
 - Default passenger routes: PITX → MOA and MOA → PITX. Exact stop list and route geometry need confirmation or a source to avoid inventing the route.
 
 ### Open questions to resolve before Step 2
-1. Confirm the proposed stack and plan, or specify React/Vite instead of Next.js.
-2. Confirm whether driver/conductor bus and route assignments are admin-managed or selected at shift start.
-3. Provide/approve the exact stops and path for both directions (or approve preparing a draft route for review).
-4. Confirm payroll periods: “semi-monthly” means 1st–15th and 16th–month-end unless you prefer another schedule.
-5. Confirm whether the 9-hour base shift includes breaks, and whether overtime starts strictly after 9 elapsed hours.
+1. Review and approve/correct the draft PITX ↔ MOA stops and endpoint choice above.
+2. Confirm whether the route should include both MOA South Wing and North Wing or use only one designated terminal/bay.
+3. Confirm whether City of Dreams and DFA are passenger stops or navigation-only waypoints.
+4. Exact road geometry and live ETA remain unverified until the route is approved and encoded.
 
-**Next step:** Wait for approval of Step 1. Do not initialize the app or create database tables until the plan is approved.
+**Next step:** Step 1 decisions are approved, but Step 2 is blocked pending review of the draft route endpoints/stop sequence. Do not initialize the app or create database tables until those route details are confirmed.
