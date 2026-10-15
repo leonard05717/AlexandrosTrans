@@ -68,7 +68,7 @@ No application implementation has been confirmed yet. Do not claim features are 
 
 
 ## Step 3 implementation notes (2026-10-15)
-- Added a Supabase email/password sign-in UI and role-aware dashboard in `src/App.jsx`.
+- Added a Supabase email/password sign-in UI and role-aware dashboard in `src/App.jsx`, including registered staff profile listing for admins.
 - Added active-shift start/end with GPS capture and browser location watch/ping submission, plus admin realtime subscriptions and Leaflet map views.
 - Added `src/lib/auth.js` for active profile lookup and `src/lib/payroll.js` for pay estimation and 1st–15th / 16th–month-end period calculation.
 - Replaced static placeholder styles with responsive login and dashboard styles in `src/styles.css`.
