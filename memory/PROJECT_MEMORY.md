@@ -56,3 +56,12 @@ No application implementation has been confirmed yet. Do not claim features are 
 - Step 1 plan choices are approved.
 - Route decision confirmed on 2026-10-15: MOA South Wing only; City of Dreams/Aseana and DFA/Macapagal are navigation-only waypoints; no MOA North Wing endpoint.
 - Step 2 is now in progress. Exact legal road geometry is still unverified; do not represent it as official or calculate dependable ETA until verified.
+
+
+## Step 2 implementation notes (2026-10-15)
+- Created the initial React + Vite scaffold: `package.json`, `index.html`, `src/main.jsx`, `src/App.jsx`, and `src/styles.css`.
+- Added `.env.example` and `src/lib/supabase.js` for frontend Supabase configuration. Only the anon/publishable key belongs in frontend env; never use the service-role key in browser code.
+- Added `supabase/migrations/001_initial_schema.sql` for staff profiles, buses, routes/stops, shifts, GPS pings, settings, payroll records, audit logs, and initial RLS policies.
+- Added `supabase/seed.sql` with PITX → MOA South Wing and MOA South Wing → PITX route directions. No coordinates are guessed.
+- Step 2 is partial: files are committed, but no live Supabase migration execution or npm build verification has happened yet. Credentials are still needed.
+- Remaining security review: tighten shift update policy and design safe public passenger reads for live route locations. Exact road geometry/coordinates are still unverified.
