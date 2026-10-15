@@ -7,7 +7,7 @@
 - `PROGRESS.md` did not exist when checked at the start of this task, so this file is being created as the project memory required by the user.
 
 ## Step 1 — Plan
-**Status: done — stack and operating choices approved on 2026-10-15. Route draft prepared for review before Step 2.**
+**Status: done — stack, operating choices, and route decision approved on 2026-10-15. Step 2 in progress.**
 
 ### Approved decisions
 - Stack: React + Vite.
@@ -17,23 +17,29 @@
 - Route plan: prepare a draft PITX ↔ MOA stop list/path for review.
 - Other approved direction: Supabase Postgres/Auth/Realtime, Leaflet/OpenStreetMap, mobile-first geolocation, and role-based access remain the proposed implementation choices.
 
-### Draft route proposal — NOT YET APPROVED
+### Approved route decision (2026-10-15)
+- MOA endpoint: **MOA South Wing only**.
+- City of Dreams / Aseana: **navigation waypoint only**, not a passenger stop.
+- DFA / Macapagal Boulevard: **navigation waypoint only**, not a passenger stop.
+- The route must terminate at the MOA South Wing transport bay. Do not include MOA North Wing as an endpoint.
+- These decisions approve the app's route plan; exact legal road geometry still needs to be traced/verified before live navigation or ETA claims.
+
+### Route path reference draft — WAYPOINTS APPROVED, ROAD GEOMETRY UNVERIFIED
 Official PITX route information lists MOA service via a modern jeepney route, and route references for PITX-to-MOA mention the City of Dreams/DFA/MOA corridor. The exact operator path and stop sequence for this app have not been confirmed. Treat the following as a reviewable product draft, not an official transit schedule or verified route geometry.
 
-**PITX → MOA (draft ordered waypoints)**
+**PITX → MOA (approved route anchors/waypoints)**
 1. PITX terminal (start)
 2. City of Dreams / Aseana area (candidate waypoint)
 3. DFA / Macapagal Boulevard area (candidate waypoint)
 4. SMX Convention Center / MOA complex (candidate waypoint)
-5. MOA South Wing / transport bay (candidate endpoint)
-6. MOA North Wing / designated MOA pickup point (candidate endpoint, if this is the intended service endpoint)
+5. MOA South Wing / transport bay (approved endpoint)
 
 **MOA → PITX:** reverse the approved waypoint order, using the actual safe/legal return-road geometry and designated pickup/drop-off bays.
 
 **Route implementation notes**
-- These are draft landmarks, not confirmed official stops. Some are alternatives/endpoints rather than stops that a bus must serve.
-- Use actual road-following polyline geometry (not straight lines between pins) once the exact route is approved.
-- Confirm whether the bus should terminate at one MOA bay or serve multiple MOA stops, and whether City of Dreams and DFA are actual passenger stops or only navigation waypoints.
+- City of Dreams/Aseana and DFA/Macapagal are navigation-only waypoints, not passenger stops.
+- MOA South Wing / transport bay is the sole approved MOA endpoint; do not add MOA North Wing.
+- Use actual road-following polyline geometry (not straight lines between pins). The exact legal road path remains unverified and must be checked before production use.
 - Source references: PITX official transport guide https://pitx.ph/passengers-guide/transport/ and PITX routes guide https://pitx.ph/routes-guide/. These establish PITX–MOA service context but do not confirm the complete stop sequence proposed above.
 
 ### Approved stack
@@ -43,33 +49,28 @@ Official PITX route information lists MOA service via a modern jeepney route, an
 - Browser Geolocation API for driver/conductor/inspector location sharing.
 - Supabase Row Level Security (RLS) and server-side role checks for authorization.
 
-### Proposed folder structure
+### Approved React + Vite folder structure
 ```
-app/
-  (public)/page.tsx                 # Passenger route/map dashboard
-  (auth)/login/page.tsx             # Staff login
-  (staff)/shift/page.tsx            # Driver/conductor/inspector shift controls
-  (admin)/dashboard/page.tsx        # Admin live map and on-duty list
-  (admin)/history/page.tsx          # Activity search and trail replay
-  (admin)/payroll/page.tsx          # Payroll summaries and CSV export
-  (admin)/settings/page.tsx         # Editable payroll rates and system settings
-  api/                              # Server-side endpoints where needed
-components/
-  maps/
-  auth/
-  shifts/
-  payroll/
-  ui/
-lib/
-  supabase/
-  auth/
-  payroll/
-  routes/
-types/
+index.html
+src/
+  main.jsx
+  App.jsx
+  styles.css
+  components/
+    maps/
+    auth/
+    shifts/
+    payroll/
+  lib/
+    supabase.js
+    auth.js
+    payroll.js
+    routes.js
 supabase/
   migrations/
   seed.sql
-public/
+.env.example
+README.md
 PROGRESS.md
 memory/
   PROJECT_MEMORY.md
@@ -95,10 +96,8 @@ memory/
 - Default payroll settings: base pay PHP 700 for a 9-hour shift; overtime PHP 86/hour after 9 hours. Store rates in settings and snapshot the applied rates on each payroll record.
 - Default passenger routes: PITX → MOA and MOA → PITX. Exact stop list and route geometry need confirmation or a source to avoid inventing the route.
 
-### Open questions to resolve before Step 2
-1. Review and approve/correct the draft PITX ↔ MOA stops and endpoint choice above.
-2. Confirm whether the route should include both MOA South Wing and North Wing or use only one designated terminal/bay.
-3. Confirm whether City of Dreams and DFA are passenger stops or navigation-only waypoints.
-4. Exact road geometry and live ETA remain unverified until the route is approved and encoded.
+### Open issues
+- Exact legal road geometry and stop coordinates still need verification before production use or reliable ETA calculation.
+- Supabase project URL and anon key must be supplied through environment variables before connecting the app.
 
-**Next step:** Step 1 decisions are approved, but Step 2 is blocked pending review of the draft route endpoints/stop sequence. Do not initialize the app or create database tables until those route details are confirmed.
+**Next step:** Step 1 is complete. Step 2 is in progress: initialize the React + Vite starter and add the initial Supabase schema/seed files. Do not claim the app is deployed or connected until credentials and deployment are configured.
