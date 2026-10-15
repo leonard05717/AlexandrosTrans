@@ -127,3 +127,29 @@ memory/
 - Passenger-facing public live-location reads still need a deliberate safe access design in a later step.
 
 **Next:** Finish validating the Step 2 scaffold/schema once Supabase credentials are available; then proceed to Step 3 (authentication, roles, and protected views).
+
+
+## Step 3 — Authentication, staff workspace, shifts, and live operations
+**Status: partial — implementation committed; build/runtime and live Supabase behavior remain unverified.**
+
+### Implemented in the frontend
+- Replaced the static landing screen with a Supabase email/password sign-in screen and role-aware staff workspace.
+- Loads the authenticated user's `profiles` record; missing/inactive profiles are not treated as a valid staff session.
+- Added shift start/end UI with browser GPS capture at clock-in/out.
+- During an open shift, the browser watches GPS and submits location pings to Supabase; permission and submission errors are surfaced to the user.
+- Added admin operations map with Leaflet/OpenStreetMap, latest visible staff GPS points, active shifts, shift records, and payroll record tables.
+- Added staff shift/record/payroll views, CSV export for visible payroll records, semi-monthly period helper, and pay estimate helper.
+- Added responsive sign-in and workspace styling.
+- Added `src/lib/auth.js` and `src/lib/payroll.js`.
+
+### Important limitations / not yet complete
+- No `npm install`, `npm run build`, browser test, or live Supabase test has been run. Treat code as implementation-in-progress until validated.
+- The SQL migration has not been applied to a verified Supabase project, and environment values are not configured here.
+- Admin account provisioning/creating auth users is not implemented in the browser. This must be done via a secure server-side function or trusted Supabase admin process.
+- Payroll record generation from closed shifts is not implemented yet; the current payroll view displays records that already exist and offers CSV export.
+- Passenger public live-map access and a safe public location view are not implemented yet.
+- Route stop coordinates and road-following geometry are still unverified; no reliable ETA is offered.
+- RLS policy review is still required, especially restricting staff shift updates to ending an open shift and designing public passenger location access safely.
+- The admin staff page currently focuses on operational/on-duty information, not full account management.
+
+**Next:** Validate the build and review/fix RLS security; then finish account/assignment management, payroll generation, and passenger live map before deployment.
