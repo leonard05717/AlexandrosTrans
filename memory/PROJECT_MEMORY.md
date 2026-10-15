@@ -65,3 +65,12 @@ No application implementation has been confirmed yet. Do not claim features are 
 - Added `supabase/seed.sql` with PITX → MOA South Wing and MOA South Wing → PITX route directions. No coordinates are guessed.
 - Step 2 is partial: files are committed, but no live Supabase migration execution or npm build verification has happened yet. Credentials are still needed.
 - Remaining security review: tighten shift update policy and design safe public passenger reads for live route locations. Exact road geometry/coordinates are still unverified.
+
+
+## Step 3 implementation notes (2026-10-15)
+- Added a Supabase email/password sign-in UI and role-aware dashboard in `src/App.jsx`.
+- Added active-shift start/end with GPS capture and browser location watch/ping submission, plus admin realtime subscriptions and Leaflet map views.
+- Added `src/lib/auth.js` for active profile lookup and `src/lib/payroll.js` for pay estimation and 1st–15th / 16th–month-end period calculation.
+- Replaced static placeholder styles with responsive login and dashboard styles in `src/styles.css`.
+- These features are committed but have not been build-tested or exercised against a live Supabase project.
+- Not done yet: secure admin user provisioning, bus assignment management, payroll generation/processing, passenger public live map, verified route geometry, and final RLS hardening.
