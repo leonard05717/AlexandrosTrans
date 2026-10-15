@@ -7,7 +7,7 @@
 - `PROGRESS.md` did not exist when checked at the start of this task, so this file is being created as the project memory required by the user.
 
 ## Step 1 — Plan
-**Status: done — stack, operating choices, and route decision approved on 2026-10-15. Step 2 in progress.**
+**Status: done — stack, operating choices, and route decision approved on 2026-10-15.**
 
 ### Approved decisions
 - Stack: React + Vite.
@@ -101,3 +101,29 @@ memory/
 - Supabase project URL and anon key must be supplied through environment variables before connecting the app.
 
 **Next step:** Step 1 is complete. Step 2 is in progress: initialize the React + Vite starter and add the initial Supabase schema/seed files. Do not claim the app is deployed or connected until credentials and deployment are configured.
+
+
+## Step 2 — App scaffold and database schema
+**Status: partial — scaffold and SQL files committed; migration has not been run against Supabase.**
+
+### Files added
+- `package.json`: React + Vite scripts and dependencies (Supabase JS, Leaflet, React Leaflet, Lucide).
+- `index.html`, `src/main.jsx`, `src/App.jsx`, `src/styles.css`: responsive initial application shell.
+- `src/lib/supabase.js`, `.env.example`: environment-based Supabase client configuration.
+- `supabase/migrations/001_initial_schema.sql`: initial profiles, buses, routes, route stops, shifts, location pings, settings, payroll records, and audit log schema; RLS policies and default payroll/location settings.
+- `supabase/seed.sql`: approved PITX ↔ MOA South Wing route directions (coordinates intentionally not guessed).
+
+### Decisions carried forward
+- MOA South Wing is the only MOA endpoint.
+- City of Dreams/Aseana and DFA/Macapagal are navigation-only waypoints, not passenger stops.
+- Default inspector payroll: PHP 700 for 9 hours, PHP 86/hour overtime after 9 hours; periods are 1st–15th and 16th–month end.
+
+### Validation / open issues
+- Files were committed to GitHub, but the migration has **not** been executed or validated against a live Supabase project.
+- Supabase project URL and anon/publishable key are not configured; copy `.env.example` to `.env.local` locally and fill in the project values.
+- No dependency install or production build has been run in this environment.
+- Before production, review the RLS policies and test shift-update restrictions; privileged profile creation/admin provisioning must be done securely, not with a service-role key in the browser.
+- Exact road geometry and route-stop coordinates remain unverified.
+- Passenger-facing public live-location reads still need a deliberate safe access design in a later step.
+
+**Next:** Finish validating the Step 2 scaffold/schema once Supabase credentials are available; then proceed to Step 3 (authentication, roles, and protected views).
