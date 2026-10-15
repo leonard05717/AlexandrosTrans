@@ -137,7 +137,7 @@ memory/
 - Loads the authenticated user's `profiles` record; missing/inactive profiles are not treated as a valid staff session.
 - Added shift start/end UI with browser GPS capture at clock-in/out.
 - During an open shift, the browser watches GPS and submits location pings to Supabase; permission and submission errors are surfaced to the user.
-- Added admin operations map with Leaflet/OpenStreetMap, latest visible staff GPS points, active shifts, shift records, and payroll record tables.
+- Added admin operations map with Leaflet/OpenStreetMap, latest visible staff GPS points, registered staff profile listing, active shifts, shift records, and payroll record tables.
 - Added staff shift/record/payroll views, CSV export for visible payroll records, semi-monthly period helper, and pay estimate helper.
 - Added responsive sign-in and workspace styling.
 - Added `src/lib/auth.js` and `src/lib/payroll.js`.
