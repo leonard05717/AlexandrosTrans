@@ -25,8 +25,8 @@ This folder stores durable project notes. The authoritative step-by-step checkli
 - Inspector payroll defaults: PHP 700 for a 9-hour shift; PHP 86/hour overtime beyond 9 hours, prorated by the minute. Formula: total = 700 + (overtime_hours × 86).
 - Admin can edit rates in settings, see daily/weekly/semi-monthly summaries, and export CSV.
 
-### Suggested technology
-Next.js or React + Node; Supabase Postgres/Auth/Realtime; Leaflet with OpenStreetMap; browser Geolocation API; role-based access control.
+### Selected technology
+React + Vite; Supabase Postgres/Auth/Realtime; Leaflet with OpenStreetMap; browser Geolocation API; role-based access control.
 
 ### Required implementation sequence
 1. Plan: confirm stack, folder structure, and schema; show plan for approval.
@@ -50,9 +50,9 @@ No application implementation has been confirmed yet. Do not claim features are 
 - Admin assigns buses and routes to drivers/conductors.
 - Payroll periods: 1st–15th and 16th–last day of each month.
 - Overtime is calculated from elapsed shift time, starting after 9 hours.
-- Prepare a draft PITX ↔ MOA route for review before database setup.
+- Approved route: PITX ↔ MOA, with MOA South Wing / transport bay as the sole MOA endpoint. City of Dreams/Aseana and DFA/Macapagal are navigation-only waypoints, not passenger stops. Exact road geometry still requires verification.
 
 ## Current status
 - Step 1 plan choices are approved.
-- A draft route is documented in root `PROGRESS.md`, with stops/waypoints explicitly marked unverified.
-- Step 2 must wait until the user confirms/corrects the draft route's endpoint and candidate stops. Do not represent the draft as an official route.
+- Route decision confirmed on 2026-10-15: MOA South Wing only; City of Dreams/Aseana and DFA/Macapagal are navigation-only waypoints; no MOA North Wing endpoint.
+- Step 2 is now in progress. Exact legal road geometry is still unverified; do not represent it as official or calculate dependable ETA until verified.
