@@ -7,6 +7,7 @@ as $$
   select exists (select 1 from public.profiles where id = (select auth.uid()) and role = 'inspector' and active = true);
 $$;
 revoke all on function public.is_fleet_inspector() from public;
+revoke all on function public.is_fleet_inspector() from anon;
 grant execute on function public.is_fleet_inspector() to authenticated;
 
 create policy "inspectors read fleet profiles" on public.profiles
