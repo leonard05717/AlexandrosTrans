@@ -25,10 +25,11 @@ function publicDirection(bus) {
 
 function FitBuses({ buses }) {
   const map = useMap();
+  const signature = buses.map(bus => `${bus.bus_id}:${bus.latitude}:${bus.longitude}`).join('|');
   useEffect(() => {
     if (buses.length === 1) map.flyTo([buses[0].latitude, buses[0].longitude], 14, { duration: 0.6 });
     else if (buses.length > 1) map.fitBounds(buses.map(bus => [bus.latitude, bus.longitude]), { padding: [45, 45], maxZoom: 14 });
-  }, [buses, map]);
+  }, [signature, map]);
   return null;
 }
 
