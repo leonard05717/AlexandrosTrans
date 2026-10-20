@@ -41,3 +41,72 @@
 .passenger-admin-complaints{display:grid;gap:13px}.passenger-admin-complaint{border:1px solid #e1e9ec;border-radius:13px;padding:17px;background:#fff}.passenger-admin-complaint-top{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.passenger-admin-complaint h3{font:800 14px Manrope,sans-serif;color:#254653;margin:7px 0 5px}.passenger-admin-complaint small{font-size:10px;color:#83959d}.passenger-admin-complaint>p{white-space:pre-wrap;line-height:1.7;font-size:12px;color:#49636d;margin:15px 0}.complaint-category{display:inline-block;border-radius:6px;background:#e8f5f1;color:#287967;font-size:9px;font-weight:800;padding:5px 7px}.complaint-status-control{display:flex;align-items:center;gap:10px;font-size:11px;color:#58717a;font-weight:700}.complaint-status-control select{border:1px solid #dce6e9;border-radius:8px;padding:8px 10px;color:#2b4b57;background:#fff;font-size:11px}.complaint-resolved{background:#e8f7ef;color:#28795e}.complaint-reviewing{background:#fff4dc;color:#986f19}
 
 .login-footer a{color:#2b8176;text-decoration:none;font-weight:700}.login-footer a:hover{text-decoration:underline}
+
+
+/* Responsive layout: desktop, tablet and mobile */
+img,svg,canvas{max-width:100%}
+#root{min-height:100vh;width:100%}
+.app-layout{width:100%;min-width:0}
+.main-area{min-width:0}
+.panel,.stat-card{min-width:0}
+.operations-map,.passenger-map-wrap,.passenger-leaflet-map{max-width:100%}
+input,select,textarea,button{max-width:100%}
+@media (max-width:1100px){
+  .app-layout{grid-template-columns:210px minmax(0,1fr)}
+  .sidebar{padding:22px 12px 16px}
+  .main-area{padding:24px 20px 18px}
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .content-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .login-page{grid-template-columns:minmax(0,1fr);min-height:100dvh}
+  .login-visual{display:none}
+  .login-panel{min-width:0;padding:28px 20px}
+  .login-form-wrap{width:100%;max-width:440px;margin-inline:auto}
+  .app-layout{display:flex;flex-direction:column}
+  .sidebar{position:relative;top:auto;height:auto;min-height:0;width:100%;padding:12px 14px;gap:12px}
+  .sidebar-brand{padding:0 4px 8px}
+  .sidebar-brand .brand-symbol{width:34px;height:34px}
+  .workspace-label{display:none}
+  .sidebar nav{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 0 8px;scrollbar-width:thin}
+  .nav-item{flex:0 0 auto;white-space:nowrap;padding:10px 12px;font-size:11px}
+  .nav-item.active{box-shadow:inset 0 -3px #64c9ae}
+  .sidebar-bottom{display:none}
+  .main-area{padding:20px 14px 16px}
+  .dashboard-header{align-items:flex-start;flex-direction:column;gap:12px;margin-bottom:18px}
+  .header-actions{width:100%;flex-wrap:wrap}
+  .header-actions>*{max-width:100%}
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .stat-card{padding:14px}
+  .stat-value{font-size:clamp(19px,5vw,25px);margin:12px 0 5px}
+  .content-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .panel{padding:15px;border-radius:12px}
+  .panel-heading{align-items:flex-start;flex-wrap:wrap}
+  .operations-map{height:280px}
+  .admin-form,.admin-form.two-col,.admin-form.two-col.payroll-generate{grid-template-columns:minmax(0,1fr);gap:12px}
+  .admin-form .primary-button{justify-self:stretch;width:100%}
+  .table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:600px}
+  .dashboard-footer{flex-wrap:wrap;gap:8px}
+}
+@media (max-width:480px){
+  .main-area{padding:16px 10px 12px}
+  .sidebar{padding:10px}
+  .sidebar-brand{font-size:14px}
+  .nav-item{padding:9px 10px;font-size:10px}
+  .dashboard-header h1{font-size:23px}
+  .stat-grid{gap:8px}
+  .stat-card{padding:11px}
+  .stat-top{font-size:10px;gap:5px}
+  .stat-value{font-size:19px;letter-spacing:-.4px;overflow-wrap:anywhere}
+  .stat-card small{font-size:9px}
+  .panel{padding:12px}
+  .panel-heading h2{font-size:14px}
+  .operations-map{height:250px}
+  .login-panel{padding:22px 16px}
+  .passenger-main{padding:0 12px}
+  .passenger-map-wrap{height:310px}
+  .passenger-form-grid{grid-template-columns:minmax(0,1fr)}
+  .passenger-complaint-section{grid-template-columns:minmax(0,1fr)}
+  .passenger-footer{gap:12px}
+}
