@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  // Force the automatic JSX runtime so JSX components do not depend on a global React variable.
+  plugins: [react({ jsxRuntime: 'automatic' })],
+  esbuild: {
+    jsx: 'automatic'
+  },
   build: {
     rollupOptions: {
       output: {
