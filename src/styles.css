@@ -110,3 +110,7 @@ input,select,textarea,button{max-width:100%}
   .passenger-complaint-section{grid-template-columns:minmax(0,1fr)}
   .passenger-footer{gap:12px}
 }
+
+/* Inspector live-fleet controls */
+.table-subtext{display:block;margin-top:4px;color:#82939c;font-size:10px;text-transform:capitalize}.table-wrap td select{min-width:130px;max-width:190px;height:36px;border:1px solid #dce5e9;background:#fff;border-radius:8px;padding:0 9px;color:#294655;font-size:11px}.table-action-button{padding:10px 12px;white-space:nowrap;font-size:11px}.live-indicator{display:flex;align-items:center;gap:8px;color:#27846c;font-size:10px;font-weight:800;letter-spacing:.7px}
+@media(max-width:900px){.table-wrap td select{min-width:115px}.table-action-button{padding:9px 10px}}
