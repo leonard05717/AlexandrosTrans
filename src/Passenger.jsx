@@ -19,8 +19,8 @@ function formatTime(value) {
 }
 
 function publicDirection(bus) {
-  if (bus.direction === 'moa_to_pitx') return 'MOA → Ternate';
-  if (bus.direction === 'pitx_to_moa') return 'Ternate → MOA';
+  if (bus.direction === 'moa_to_ternate') return 'MOA → Ternate';
+  if (bus.direction === 'ternate_to_moa') return 'Ternate → MOA';
   return bus.route_name || 'Route not assigned';
 }
 
