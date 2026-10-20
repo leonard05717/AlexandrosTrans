@@ -63,7 +63,15 @@ export default function App() {
    ]);
    for(const x of [activeRes,profileRes,pingRes,complaintRes])if(x.error)throw x.error;
    setActiveShifts(activeRes.data||[]);setStaffProfiles(profileRes.data||[]);setComplaints(complaintRes.data||[]);
-   const latest=new Map();for(const ping of pingRes.data||[])if(!latest.has(ping.user_id))latest.set(ping.user_id,ping);
+   // Only show GPS pings that belong to a currently active shift. This removes a driver/bus
+   // from the admin live fleet immediately after endShift sets ended_at.
+   const activeShiftIds=new Set((activeRes.data||[]).map(s=>s.id));
+   const latest=new Map();
+   for(const ping of pingRes.data||[]){
+    if(!activeShiftIds.has(ping.shift_id))continue;
+    const key=ping.bus_id||ping.user_id;
+    if(!latest.has(key))latest.set(key,ping);
+   }
    setLocations([...latest.values()]);
   } else if(currentProfile.role==='inspector'){
    const [activeRes,pingRes]=await Promise.all([
