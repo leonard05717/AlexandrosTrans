@@ -9,12 +9,12 @@ import 'leaflet/dist/leaflet.css';
 
 const busIcon = new L.DivIcon({ className: 'map-marker bus-marker', html: '<span>BUS</span>', iconSize: [42, 30], iconAnchor: [21, 15] });
 const staffIcon = new L.DivIcon({ className: 'map-marker staff-marker', html: '<span>GPS</span>', iconSize: [42, 30], iconAnchor: [21, 15] });
-const DIRECTIONS = [{ value: 'pitx_to_moa', label: 'PITX → MOA South Wing' }, { value: 'moa_to_pitx', label: 'MOA South Wing → PITX' }];
+const DIRECTIONS = [{ value: 'ternate_to_moa', label: 'Ternate → MOA' }, { value: 'moa_to_ternate', label: 'MOA → Ternate' }];
 const ROLES = ['admin', 'driver', 'conductor', 'inspector'];
 function timeLabel(value) { if (!value) return '—'; return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
 function hoursLabel(start, end) { if (!start) return '—'; const mins = Math.max(0, Math.floor(((end ? new Date(end) : new Date()) - new Date(start)) / 60000)); return `${Math.floor(mins / 60)}h ${mins % 60}m`; }
 function money(value) { return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value || 0)); }
-function routeLabel(direction) { return direction === 'pitx_to_moa' ? 'PITX → MOA South Wing' : direction === 'moa_to_pitx' ? 'MOA South Wing → PITX' : 'Route not assigned'; }
+function routeLabel(direction) { return direction === 'ternate_to_moa' ? 'Ternate → MOA' : direction === 'moa_to_ternate' ? 'MOA → Ternate' : 'Route not assigned'; }
 function ErrorNotice({ children }) { return children ? <div className="notice error-notice" role="alert">{children}</div> : null; }
 function EmptyRow({ cols, text }) { return <tr><td colSpan={cols} className="empty-cell">{text}</td></tr>; }
 function Stat({ icon: Icon, label, value, hint }) { return <article className="stat-card"><div className="stat-top"><span>{label}</span><Icon size={18} /></div><strong className="stat-value">{value}</strong><small>{hint}</small></article>; }
@@ -32,7 +32,7 @@ export default function App() {
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[authError,setAuthError]=useState('');
  const [recoveryMode,setRecoveryMode]=useState(false),[recoveryPassword,setRecoveryPassword]=useState(''),[recoveryConfirm,setRecoveryConfirm]=useState(''),[authNotice,setAuthNotice]=useState('');
  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[shift,setShift]=useState(null);
- const [buses,setBuses]=useState([]),[routes,setRoutes]=useState([]),[busId,setBusId]=useState(''),[routeId,setRouteId]=useState(''),[direction,setDirection]=useState('pitx_to_moa');
+ const [buses,setBuses]=useState([]),[routes,setRoutes]=useState([]),[busId,setBusId]=useState(''),[routeId,setRouteId]=useState(''),[direction,setDirection]=useState('ternate_to_moa');
  const [locations,setLocations]=useState([]),[activeShifts,setActiveShifts]=useState([]),[staffProfiles,setStaffProfiles]=useState([]),[history,setHistory]=useState([]),[payroll,setPayroll]=useState([]);
  const [activeTab,setActiveTab]=useState('overview'),[refreshing,setRefreshing]=useState(false);
  const [newStaff,setNewStaff]=useState({email:'',full_name:'',role:'inspector',password:''}),[newBus,setNewBus]=useState({bus_code:'',plate_number:''}),[assignments,setAssignments]=useState({user_id:'',bus_id:''});
