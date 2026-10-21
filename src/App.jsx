@@ -7,7 +7,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase.js';
 import { calculatePay, getPayrollPeriod } from './lib/payroll.js';
 import 'leaflet/dist/leaflet.css';
 
-const busIcon = new L.DivIcon({ className: 'map-marker bus-marker', html: '<span>BUS</span>', iconSize: [42, 30], iconAnchor: [21, 15] });
+function busIconFor(busCode) { const label=String(busCode||'BUS').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); return new L.DivIcon({ className:'map-marker bus-marker', html:'<span>'+label+'</span>', iconSize:[76,30], iconAnchor:[38,15] }); }
 const staffIcon = new L.DivIcon({ className: 'map-marker staff-marker', html: '<span>GPS</span>', iconSize: [42, 30], iconAnchor: [21, 15] });
 const DIRECTIONS = [{ value: 'ternate_to_moa', label: 'Ternate → MOA' }, { value: 'moa_to_ternate', label: 'MOA → Ternate' }];
 const ROLES = ['admin', 'driver', 'conductor', 'inspector'];
@@ -25,7 +25,7 @@ function downloadCsv(rows, filename) {
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); const link=document.createElement('a'); link.href=url; link.download=filename; link.click(); URL.revokeObjectURL(url);
 }
 function ShiftList({ shifts }) { return <div className="shift-list">{shifts.map(s=><div className="shift-list-item" key={s.id}><div className="avatar">{(s.profiles?.full_name||'?').slice(0,1).toUpperCase()}</div><div className="shift-list-main"><strong>{s.profiles?.full_name||'Staff member'}</strong><small>{s.role_snapshot} · {s.routes?.name||routeLabel(s.routes?.direction)}</small></div><span className="status-tag">On duty</span></div>)}{!shifts.length&&<p className="empty-inline">No active shifts right now.</p>}</div>; }
-function OperationsMap({ locations, center, large=false }) { return <div className={large?'operations-map large-map':'operations-map'}><MapContainer center={center} zoom={13} scrollWheelZoom style={{height:'100%',width:'100%'}}><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>{locations.map(p=><Marker key={p.id} position={[p.latitude,p.longitude]} icon={p.bus_id?busIcon:staffIcon}><Popup><strong>{p.profiles?.full_name||'Staff member'}</strong><br/>{p.profiles?.role||'Staff'}<br/>{p.routes?.name||routeLabel(p.routes?.direction)}<br/>Updated {timeLabel(p.recorded_at)}</Popup></Marker>)}</MapContainer></div>; }
+function OperationsMap({ locations, center, large=false }) { return <div className={large?'operations-map large-map':'operations-map'}><MapContainer center={center} zoom={13} scrollWheelZoom style={{height:'100%',width:'100%'}}><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>{locations.map(p=><Marker key={p.id} position={[p.latitude,p.longitude]} icon={p.bus_id?busIconFor(p.buses?.bus_code):staffIcon}><Popup><strong>{p.bus_id?(p.buses?.bus_code||'Bus code unavailable'):(p.profiles?.full_name||'Staff member')}</strong><br/>{p.profiles?.full_name||'Staff member'} · {p.profiles?.role||'Staff'}<br/>{p.routes?.name||routeLabel(p.routes?.direction)}<br/>Updated {timeLabel(p.recorded_at)}</Popup></Marker>)}</MapContainer></div>; }
 
 export default function App() {
  const [session,setSession]=useState(null),[profile,setProfile]=useState(null),[authLoading,setAuthLoading]=useState(true);
