@@ -6,12 +6,17 @@ import { BusFront, MessageSquareWarning, MapPin, RefreshCw, ShieldCheck, Send, C
 import { isSupabaseConfigured, supabase } from './lib/supabase.js';
 import 'leaflet/dist/leaflet.css';
 
-const busIcon = new L.DivIcon({
-  className: 'passenger-bus-marker',
-  html: '<span>BUS</span>',
-  iconSize: [48, 36],
-  iconAnchor: [24, 18]
-});
+function createBusIcon(busCode) {
+  const label = String(busCode || 'BUS').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+  return new L.DivIcon({
+    className: 'passenger-bus-marker',
+    html: '<span>' + label + '</span>',
+    iconSize: [72, 36],
+    iconAnchor: [36, 18]
+  });
+}
 
 function formatTime(value) {
   if (!value) return 'Waiting for first GPS signal';
@@ -52,7 +57,7 @@ export default function Passenger() {
     if (!quiet) setLoadingMap(true);
     const { data, error } = await supabase
       .from('passenger_bus_locations')
-      .select('bus_id,bus_code,route_name,direction,latitude,longitude,recorded_at,trip_started_at')
+      .select('bus_id,bus_code,route_name,direction,latitude,longitude,recorded_at,trip_started_at,driver_name,conductor_name')
       .order('recorded_at', { ascending: false });
     if (error) setMapError('Unable to load bus locations right now. Please refresh in a moment.');
     else {
@@ -129,8 +134,8 @@ export default function Passenger() {
             <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="passenger-leaflet-map">
               <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
               <FitBuses buses={buses}/>
-              {buses.map(bus => <Marker key={bus.bus_id} position={[Number(bus.latitude), Number(bus.longitude)]} icon={busIcon}>
-                <Popup><strong>{bus.bus_code}</strong><br/>{publicDirection(bus)}<br/>GPS: {formatTime(bus.recorded_at)}</Popup>
+              {buses.map(bus => <Marker key={bus.bus_id} position={[Number(bus.latitude), Number(bus.longitude)]} icon={createBusIcon(bus.bus_code)}>
+                <Popup><strong>{bus.bus_code}</strong><br/>{publicDirection(bus)}<br/>Driver: {bus.driver_name || 'Not provided'}<br/>Conductor: {bus.conductor_name || 'Not provided'}<br/>GPS: {formatTime(bus.recorded_at)}</Popup>
               </Marker>)}
             </MapContainer>
             {!buses.length && !loadingMap && <div className="passenger-map-empty"><MapPin size={23}/><strong>No live bus location yet</strong><span>When a bus starts its shift and sends GPS, it will appear here.</span></div>}
@@ -139,7 +144,7 @@ export default function Passenger() {
             <div className="passenger-bus-list-title"><span className="live-dot"/> LIVE STATUS <small>{buses.length} {buses.length === 1 ? 'bus' : 'buses'}</small></div>
             {buses.map(bus => <article className="passenger-bus-card" key={bus.bus_id}>
               <div className="passenger-bus-card-icon"><BusFront size={21}/></div>
-              <div className="passenger-bus-card-body"><strong>{bus.bus_code}</strong><span>{publicDirection(bus)}</span><small><Clock3 size={12}/> Updated {formatTime(bus.recorded_at)}</small></div>
+              <div className="passenger-bus-card-body"><strong>{bus.bus_code}</strong><span>{publicDirection(bus)}</span><small className="passenger-crew-detail">Driver: {bus.driver_name || 'Not provided'}</small><small className="passenger-crew-detail">Conductor: {bus.conductor_name || 'Not provided'}</small><small><Clock3 size={12}/> Updated {formatTime(bus.recorded_at)}</small></div>
               <span className="bus-live-tag">Live</span>
             </article>)}
             {!buses.length && <p className="passenger-empty-list">No buses are reporting a live location at the moment.</p>}
