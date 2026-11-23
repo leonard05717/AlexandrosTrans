@@ -47,3 +47,10 @@ Last updated: 2026-11-23
 - Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
 - Decisions: Screenshot confirmed CARTO tiles displayed an "API KEY REQUIRED" watermark. Replaced CARTO Voyager raster tiles with the public OpenStreetMap tile endpoint, which does not require a CARTO API key. Kept the current bus marker, live GPS refresh, map center behavior, crew details, and complaint form unchanged.
 - Open issues: Confirm Netlify production deploy completes and visually verify that map tiles render; no browser/build test performed in this step.
+
+
+## Latest update — Step 10: Preserve Passenger Map Zoom on Refresh
+- Status: done (GitHub source updated; Netlify deployment and browser verification pending).
+- Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
+- Decisions: Passenger map automatically frames the bus locations only once when the first GPS data arrives. Subsequent manual refreshes and 30-second GPS updates move/update bus markers without calling flyTo/fitBounds again, preserving the passenger's chosen zoom level and map position.
+- Open issues: Confirm the new production deploy is ready and test manual zoom in/out followed by Refresh map and automatic GPS refresh in the browser.
