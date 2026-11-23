@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { BusFront, MessageSquareWarning, MapPin, RefreshCw, ShieldCheck, Send, Clock3, CheckCircle2, Navigation } from 'lucide-react';
@@ -31,11 +31,21 @@ function publicDirection(bus) {
 
 function FitBuses({ buses }) {
   const map = useMap();
-  const signature = buses.map(bus => `${bus.bus_id}:${bus.latitude}:${bus.longitude}`).join('|');
+  const hasInitialFit = useRef(false);
+
   useEffect(() => {
-    if (buses.length === 1) map.flyTo([buses[0].latitude, buses[0].longitude], 14, { duration: 0.6 });
-    else if (buses.length > 1) map.fitBounds(buses.map(bus => [bus.latitude, bus.longitude]), { padding: [45, 45], maxZoom: 14 });
-  }, [signature, map]);
+    // Automatically frame the buses only once after the first GPS data arrives.
+    // Later GPS refreshes update markers without changing the passenger's zoom or map position.
+    if (hasInitialFit.current || buses.length === 0) return;
+
+    if (buses.length === 1) {
+      map.flyTo([buses[0].latitude, buses[0].longitude], 14, { duration: 0.6 });
+    } else {
+      map.fitBounds(buses.map(bus => [bus.latitude, bus.longitude]), { padding: [45, 45], maxZoom: 14 });
+    }
+    hasInitialFit.current = true;
+  }, [buses.length, map]);
+
   return null;
 }
 
