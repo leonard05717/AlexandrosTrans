@@ -1,6 +1,6 @@
 # BusTrack HRIS — Progress
 
-Last updated: 2026-10-15
+Last updated: 2026-11-23
 
 ## Current status
 - Step 1: Requirements and route decision — complete.
@@ -33,3 +33,10 @@ Last updated: 2026-10-15
 3. Review and harden RLS and add the secure admin Edge Function.
 4. Implement passenger live map and validate route geometry.
 5. Configure deployment environment variables and deploy.
+
+
+## Latest update — Step 8: Apply Passenger Map Style to Netlify-Connected Repository
+- Status: done (GitHub source updated; Netlify production redeploy still required).
+- Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
+- Decisions: Netlify's published deploy was verified to originate from `leonard05717/AlexandrosTrans`, not `leonard05717/AlexandrosTransport`. Applied CARTO Voyager tiles to the connected repository's passenger map and set the no-bus fallback center to [14.32, 120.78]. Preserved the connected repository's bus labels, driver/conductor details, GPS refresh, and complaint form.
+- Open issues: Wait for or trigger a production deploy from the updated `main` branch, then visually verify CARTO tiles in the live passenger page. Build and browser rendering have not been independently tested.
