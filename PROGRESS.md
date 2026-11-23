@@ -54,3 +54,10 @@ Last updated: 2026-11-23
 - Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
 - Decisions: Passenger map automatically frames the bus locations only once when the first GPS data arrives. Subsequent manual refreshes and 30-second GPS updates move/update bus markers without calling flyTo/fitBounds again, preserving the passenger's chosen zoom level and map position.
 - Open issues: Confirm the new production deploy is ready and test manual zoom in/out followed by Refresh map and automatic GPS refresh in the browser.
+
+
+## Latest update — Step 11: Add Passenger Page Entry on Main Page
+- Status: partial (GitHub source updated; build, production deployment, and browser verification pending).
+- Files changed: `src/App.jsx`, `src/styles.css`, `PROGRESS.md`.
+- Decisions: Added a prominent Passenger live tracking link to the public main sign-in hero and a Passenger page link in the signed-in dashboard header. Both navigate to the existing `/passenger` route; the passenger map/page and its behavior were not changed. Kept the existing footer link as well.
+- Open issues: Run `npm run build`, confirm the GitHub commit triggers Netlify deployment, then test the passenger links on desktop and mobile.
