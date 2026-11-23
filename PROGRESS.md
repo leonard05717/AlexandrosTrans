@@ -40,3 +40,10 @@ Last updated: 2026-11-23
 - Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
 - Decisions: Netlify's published deploy was verified to originate from `leonard05717/AlexandrosTrans`, not `leonard05717/AlexandrosTransport`. Applied CARTO Voyager tiles to the connected repository's passenger map and set the no-bus fallback center to [14.32, 120.78]. Preserved the connected repository's bus labels, driver/conductor details, GPS refresh, and complaint form.
 - Open issues: Wait for or trigger a production deploy from the updated `main` branch, then visually verify CARTO tiles in the live passenger page. Build and browser rendering have not been independently tested.
+
+
+## Latest update — Step 9: Fix Passenger Map Tile API-Key Error
+- Status: done (GitHub source updated; production deployment and visual verification pending).
+- Files changed: `src/Passenger.jsx`, `PROGRESS.md`.
+- Decisions: Screenshot confirmed CARTO tiles displayed an "API KEY REQUIRED" watermark. Replaced CARTO Voyager raster tiles with the public OpenStreetMap tile endpoint, which does not require a CARTO API key. Kept the current bus marker, live GPS refresh, map center behavior, crew details, and complaint form unchanged.
+- Open issues: Confirm Netlify production deploy completes and visually verify that map tiles render; no browser/build test performed in this step.
