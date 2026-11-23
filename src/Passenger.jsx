@@ -133,8 +133,9 @@ export default function Passenger() {
           <div className="passenger-map-wrap">
             <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="passenger-leaflet-map">
               <TileLayer
-                attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maxZoom={19}
               />
               <FitBuses buses={buses}/>
               {buses.map(bus => <Marker key={bus.bus_id} position={[Number(bus.latitude), Number(bus.longitude)]} icon={createBusIcon(bus.bus_code)}>
