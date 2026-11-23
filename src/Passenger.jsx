@@ -74,7 +74,7 @@ export default function Passenger() {
     return () => window.clearInterval(timer);
   }, [loadBuses]);
 
-  const mapCenter = useMemo(() => buses.length ? [Number(buses[0].latitude), Number(buses[0].longitude)] : [14.535, 120.982], [buses]);
+  const mapCenter = useMemo(() => buses.length ? [Number(buses[0].latitude), Number(buses[0].longitude)] : [14.32, 120.78], [buses]);
 
   async function submitComplaint(event) {
     event.preventDefault();
@@ -132,7 +132,10 @@ export default function Passenger() {
         <div className="passenger-map-layout">
           <div className="passenger-map-wrap">
             <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="passenger-leaflet-map">
-              <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+              <TileLayer
+                attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              />
               <FitBuses buses={buses}/>
               {buses.map(bus => <Marker key={bus.bus_id} position={[Number(bus.latitude), Number(bus.longitude)]} icon={createBusIcon(bus.bus_code)}>
                 <Popup><strong>{bus.bus_code}</strong><br/>{publicDirection(bus)}<br/>Driver: {bus.driver_name || 'Not provided'}<br/>Conductor: {bus.conductor_name || 'Not provided'}<br/>GPS: {formatTime(bus.recorded_at)}</Popup>
